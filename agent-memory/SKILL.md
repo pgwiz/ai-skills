@@ -27,7 +27,7 @@ If `AGENT_USER` is missing, empty, or still a copied template value:
 1. Ask the user what username should be used for git identity.
 2. Use that value as `{AGENT_USER}` for the current session.
 3. Tell the user to persist it in `.agent-config` as `AGENT_USER=<their-username>`.
-Never default to `pgwiz` or any other hardcoded username.
+Never default to any hardcoded username.
 
 ## SESSION ENTRY FLOW
 1. Read:
