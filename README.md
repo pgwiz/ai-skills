@@ -12,7 +12,7 @@ your stack, conventions, or codebase every session.
 
 ## Install
 
-gh skills install pgwiz/ai-skills agent-memory
+`gh skills install pgwiz/ai-skills agent-memory`
 
 Or see [install/INSTALL.md](install/INSTALL.md) for curl/PowerShell/manual options.
 
