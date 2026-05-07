@@ -1,4 +1,4 @@
-# pgwiz Agent Memory System
+# {AGENT_USER} Agent Memory System
 # Location: {AGENT_SYSTEM_PATH}\
 # Version: 1.0
 
@@ -27,12 +27,12 @@ that keeps them focused, consistent, and non-destructive across all your project
 
 | File | Purpose | Who updates it |
 |------|---------|----------------|
-| `GLOBAL_PROTOCOL.md` | Universal agent rules, your dev identity, stack rules | pgwiz manually |
-| `GLOBAL_WARNINGS.md` | Cross-project mistakes never to repeat | pgwiz (append only) |
+| `GLOBAL_PROTOCOL.md` | Universal agent rules, your dev identity, stack rules | {AGENT_USER} manually |
+| `GLOBAL_WARNINGS.md` | Cross-project mistakes never to repeat | {AGENT_USER} (append only) |
 | `AGENT_BOOTSTRAP.md` | How to initialize `.agent/` for a new project | Read-only |
-| `CONVENTIONS.md` | Coding standards across all stacks | pgwiz manually |
+| `CONVENTIONS.md` | Coding standards across all stacks | {AGENT_USER} manually |
 | `SESSION_START.md` | The exact prompt to start every session | Read-only (copy from it) |
-| `README.md` | This file | pgwiz manually |
+| `README.md` | This file | {AGENT_USER} manually |
 
 ---
 
@@ -145,4 +145,4 @@ NOT ALLOWED:
 ---
 
 *Last updated: 2025-05-06*
-*System designed by pgwiz × Claude*
+*System maintained by {AGENT_USER}*

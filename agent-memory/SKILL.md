@@ -22,6 +22,13 @@ This file is written by the installer and contains:
   AGENT_HOME=...
 Use these values wherever you see {AGENT_SYSTEM_PATH} in this skill.
 
+## USERNAME SETUP (FIRST RUN)
+If `AGENT_USER` is missing, empty, or still a copied template value:
+1. Ask the user what username should be used for git identity.
+2. Use that value as `{AGENT_USER}` for the current session.
+3. Tell the user to persist it in `.agent-config` as `AGENT_USER=<their-username>`.
+Never default to `pgwiz` or any other hardcoded username.
+
 ## SESSION ENTRY FLOW
 1. Read:
    - `{AGENT_SYSTEM_PATH}/GLOBAL_PROTOCOL.md`
