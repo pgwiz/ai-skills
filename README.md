@@ -1,65 +1,90 @@
 # ai-skills
 
-Agent memory and session control skills for GitHub Copilot, Claude Code,
-and any agent runtime that supports the Agent Skills open standard.
+Agent memory, context compaction, and living documentation skills for Google Antigravity, Claude Code, GitHub Copilot, and any agent runtime adhering to the [Agent Skills open standard](https://agentskills.io).
 
-## Skills
+## Available Skills
 
-### agent-memory
-Gives your agent persistent project memory, safe file-writing rules,
-and cross-session context. Works across all projects without re-explaining
-your stack, conventions, or codebase every session.
+### 1. `dev-md-compactor`
+A specialized context compactor and living documentation engine. Transforms conversational context, AST code changes, git worktrees, and dependency graphs into persistent repository guides within `dev_md_guides/`:
+- `branch.md` — Active branch, upstream divergence, and uncommitted diff surface.
+- `features.md` — Spec-Driven Development (SDD) progress and feature matrices.
+- `structure.md` — Module topography, entry points, and inter-folder import dependencies.
+- `memory.md` — Durable Architecture Decision Records (ADRs) and immutable invariants.
+- `changelog.md` — Append-only chronological audit log of operational runs and modified AST symbols.
 
-## Install
+Backed by in-depth research: see [research/Agent Memory Compaction Research.md](research/Agent%20Memory%20Compaction%20Research.md).
 
-### Using GitHub CLI (recommended)
+### 2. `agent-memory`
+Gives your agent persistent developer identity, safe file-writing rules, and cross-session context. Bootstraps project memory across codebases without re-explaining stack conventions or guidelines each session.
 
-Follow these steps to install or upgrade the GitHub CLI (`gh`), authenticate, and install the skill.
+---
 
-Windows (winget)
+## Installation
 
+### Google Antigravity
+
+#### Global Install (All Projects)
+Copy `dev-md-compactor` into your global Antigravity skills directory:
+
+**Windows (PowerShell):**
 ```powershell
-# Install
-winget install --id GitHub.cli
-# Upgrade
-winget upgrade --id GitHub.cli
+New-Item -ItemType Directory -Force -Path "$HOME\.gemini\config\skills\dev-md-compactor"
+Copy-Item -Path "dev-md-compactor\*" -Destination "$HOME\.gemini\config\skills\dev-md-compactor\" -Recurse -Force
 ```
 
-Linux (Debian/Ubuntu - apt)
-
+**macOS / Linux:**
 ```bash
-# Ensure curl is present
-type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-# Add GitHub CLI package repo and key
-curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-sudo apt update && sudo apt install gh -y
+mkdir -p ~/.gemini/config/skills/dev-md-compactor
+cp -r dev-md-compactor/* ~/.gemini/config/skills/dev-md-compactor/
 ```
 
-Authenticate with GitHub:
+#### Project-Local Install
+Place the skill inside your project's `.agent/skills/` directory and add `.agent/workflows/compact-docs.md`. Antigravity will discover it automatically and enable the `/compact-docs` command.
+
+---
+
+### Claude Code & GitHub Copilot CLI
+
+#### Using GitHub CLI (`gh skills`)
 
 ```bash
-gh auth login
-```
-
-Finally, install the skill:
-
-```bash
+# Install agent-memory
 gh skills install pgwiz/ai-skills agent-memory
+
+# Install dev-md-compactor
+gh skills install pgwiz/ai-skills dev-md-compactor
 ```
 
-Or see [install/INSTALL.md](install/INSTALL.md) for curl/PowerShell/manual options.
+See [install/INSTALL.md](install/INSTALL.md) for curl, PowerShell, and manual installation options.
+
+---
+
+## Usage
+
+### dev-md-compactor
+
+- **Explicit Command:** Run `/compact-docs` in chat.
+- **Natural Language:** Ask the agent to `"compact memory"`, `"save our progress"`, `"update dev guides"`, or `"write changelog"`.
+- **Proactive Execution:** Agents configured with `GEMINI.md` or `AGENTS.md` automatically trigger compaction at task-completion boundaries before context resets.
+- **Standalone CLI:** You can also run the deterministic compactor script directly from terminal:
+  ```bash
+  python dev-md-compactor/scripts/run_compactor.py
+  ```
+
+---
 
 ## Compatibility
 
 | Runtime | Supported |
 |---------|-----------|
-| GitHub Copilot (VS Code) | ✓ |
+| Google Antigravity | ✓ |
 | Claude Code | ✓ |
+| GitHub Copilot (VS Code) | ✓ |
 | GitHub Copilot CLI | ✓ |
-| Any .agents/skills runtime | ✓ |
+| Any Agent Skills runtime (`.agents/skills`) | ✓ |
 | Windows / macOS / Linux | ✓ |
+
+---
 
 ## Author
 pgwiz — https://github.com/pgwiz

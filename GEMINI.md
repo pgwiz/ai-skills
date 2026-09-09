@@ -1,0 +1,18 @@
+# Project Agent Instructions
+
+## Session Memory & Context Compaction
+
+This project uses the **dev-md-compactor** skill (`dev-md-compactor/SKILL.md` or `.agent/skills/dev-md-compactor/SKILL.md`) to persist project state across sessions into a `dev_md_guides/` directory at the project root:
+
+- `dev_md_guides/branch.md` — active branch worktree, upstream tracking, divergence, and uncommitted diffs
+- `dev_md_guides/features.md` — capabilities matrix and Spec-Driven Development (SDD) statuses
+- `dev_md_guides/structure.md` — codebase topology, entry points, and module dependency graph
+- `dev_md_guides/memory.md` — durable architecture decisions (ADRs), system invariants, conventions, and gotchas
+- `dev_md_guides/changelog.md` — reverse-chronological, append-only operational audit log
+
+### Proactive Trigger Protocol
+- **Trigger automatically** whenever a non-trivial engineering task wraps up (multiple files modified, a feature delivered, a refactor concluded, or a bug root-caused) — do not wait to be asked.
+- It can also be invoked explicitly with `/compact-docs` or when the user asks to "compact memory", "save progress", or "update dev guides".
+
+### Rehydration Rule
+- Before starting any non-trivial coding task, read `dev_md_guides/branch.md` and `dev_md_guides/memory.md` first if they exist — they contain project ground truths and invariants that cannot be recovered by reading code alone.
