@@ -1,5 +1,5 @@
 # Codebase Architecture & Directory Dependency Graph
-_Last regenerated: 2026-09-14 09:35:15 UTC by dev-md-compactor_
+_Last regenerated: 2026-09-14 09:57:04 UTC by dev-md-compactor_
 
 ## Project Manifests & Build Tools
 - *(No standard build manifests detected at root)*
@@ -33,6 +33,15 @@ _Last regenerated: 2026-09-14 09:35:15 UTC by dev-md-compactor_
 
 ### `root/`
 - **Files (7)**: `CODE_OF_CONDUCT.md, GEMINI.md, INSTALL_PLAN_v2.md, MARKETPLACE.md, README.md, SECURITY.md, verification_request.md`
+
+### `tests/`
+- **Files (1)**: `test_compactor.py`
+- **Discovered Module Dependencies**: `pathlib, run_compactor, shutil, sys, tempfile, unittest`
+
+## Environment & Directory Catalog Reference
+- Central Catalog: `dev_md_guides/directory.md` (sample committed as `dev_md_guides/directory.md.sample`).
+- All workspace paths, servers, backend links, frontend links, and external endpoints are centralized in this catalog.
+- Invariant: Never hardcode local filesystem paths or network URLs directly across project markdown files.
 
 ## Architectural Invariants & Boundary Rules
 - Internal modules should adhere to defined dependency boundaries without cyclic imports.

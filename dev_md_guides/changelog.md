@@ -1,6 +1,28 @@
 # Session Operational Changelog
 _Append-only. Newest first. Never edit past entries._
 
+## [2026-09-14 09:57:04 UTC] — Branch `feat/dev-md-compactor` (HEAD: `3c815f8`)
+- **Event**: Automated Context Compaction
+- **Operational Scope**: Synchronized repository ground-truth into `dev_md_guides/`
+
+### AST & Code Modifications
+- **File**: `.agent/skills/dev-md-compactor/scripts/run_compactor.py` (python)
+  - *Functions*: run_cmd(cmd, cwd) [line:64], get_git_info(root_dir) [line:81], extract_ast_symbols(file_path) [line:137], get_modified_code_symbols(root_dir) [line:166], build_structure_graph(root_dir) [line:201], write_branch_md(guides_dir, git_info) [line:253], write_structure_md(guides_dir, dir_summary, imports_map, manifests, catalog) [line:299], append_changelog_md(guides_dir, modified_nodes, git_info) [line:354], ensure_directory_gitignored(root_dir, guides_dir) [line:395], load_directory_catalog_grouped(guides_dir) [line:437], load_directory_catalog(guides_dir) [line:509], seed_static_templates(guides_dir, templates_dir, root_dir) [line:521], print_report(git_info, modified_nodes, dir_summary, manifests, catalog, grouped_catalog) [line:616], main() [line:652]
+- **File**: `dev-md-compactor/scripts/run_compactor.py` (python)
+  - *Functions*: run_cmd(cmd, cwd) [line:64], get_git_info(root_dir) [line:81], extract_ast_symbols(file_path) [line:137], get_modified_code_symbols(root_dir) [line:166], build_structure_graph(root_dir) [line:201], write_branch_md(guides_dir, git_info) [line:253], write_structure_md(guides_dir, dir_summary, imports_map, manifests, catalog) [line:299], append_changelog_md(guides_dir, modified_nodes, git_info) [line:354], ensure_directory_gitignored(root_dir, guides_dir) [line:395], load_directory_catalog_grouped(guides_dir) [line:437], load_directory_catalog(guides_dir) [line:509], seed_static_templates(guides_dir, templates_dir, root_dir) [line:521], print_report(git_info, modified_nodes, dir_summary, manifests, catalog, grouped_catalog) [line:616], main() [line:652]
+
+---
+## [2026-09-14 09:51:42 UTC] — Branch `feat/dev-md-compactor` (HEAD: `3c815f8`)
+- **Event**: Automated Context Compaction
+- **Operational Scope**: Synchronized repository ground-truth into `dev_md_guides/`
+
+### AST & Code Modifications
+- **File**: `.agent/skills/dev-md-compactor/scripts/run_compactor.py` (python)
+  - *Functions*: run_cmd(cmd, cwd) [line:64], get_git_info(root_dir) [line:81], extract_ast_symbols(file_path) [line:137], get_modified_code_symbols(root_dir) [line:166], build_structure_graph(root_dir) [line:201], write_branch_md(guides_dir, git_info) [line:253], write_structure_md(guides_dir, dir_summary, imports_map, manifests, catalog) [line:299], append_changelog_md(guides_dir, modified_nodes, git_info) [line:354], ensure_directory_gitignored(root_dir, guides_dir) [line:395], load_directory_catalog_grouped(guides_dir) [line:437], load_directory_catalog(guides_dir) [line:509], seed_static_templates(guides_dir, templates_dir, root_dir) [line:521], print_report(git_info, modified_nodes, dir_summary, manifests, catalog, grouped_catalog) [line:616], main() [line:652]
+- **File**: `dev-md-compactor/scripts/run_compactor.py` (python)
+  - *Functions*: run_cmd(cmd, cwd) [line:64], get_git_info(root_dir) [line:81], extract_ast_symbols(file_path) [line:137], get_modified_code_symbols(root_dir) [line:166], build_structure_graph(root_dir) [line:201], write_branch_md(guides_dir, git_info) [line:253], write_structure_md(guides_dir, dir_summary, imports_map, manifests, catalog) [line:299], append_changelog_md(guides_dir, modified_nodes, git_info) [line:354], ensure_directory_gitignored(root_dir, guides_dir) [line:395], load_directory_catalog_grouped(guides_dir) [line:437], load_directory_catalog(guides_dir) [line:509], seed_static_templates(guides_dir, templates_dir, root_dir) [line:521], print_report(git_info, modified_nodes, dir_summary, manifests, catalog, grouped_catalog) [line:616], main() [line:652]
+
+---
 ## [2026-09-14 09:35:15 UTC] — Branch `feat/dev-md-compactor` (HEAD: `a07645a`)
 - **Event**: Automated Context Compaction
 - **Operational Scope**: Synchronized repository ground-truth into `dev_md_guides/`

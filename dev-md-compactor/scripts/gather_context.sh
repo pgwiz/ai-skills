@@ -100,4 +100,15 @@ else
   echo "(dev_md_guides/ does not exist yet — will be created)"
 fi
 
+# ---------------------------------------------------------------------------
+hr "DIRECTORY & ENDPOINT CATALOG (dev_md_guides/directory.md)"
+if [ -f "dev_md_guides/directory.md" ]; then
+  cat "dev_md_guides/directory.md"
+elif [ -f "dev_md_guides/directory.md.sample" ]; then
+  echo "(directory.md not found, displaying directory.md.sample)"
+  cat "dev_md_guides/directory.md.sample"
+else
+  echo "(no directory catalog found in dev_md_guides/)"
+fi
+
 hr "DONE"

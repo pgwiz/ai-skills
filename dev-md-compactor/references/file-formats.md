@@ -24,8 +24,14 @@ _Last regenerated: YYYY-MM-DD HH:MM:SS UTC by dev-md-compactor_
 - **Files (3)**: `service.py`, `pkce.py`, `tokens.py`
 - **Discovered Module Dependencies**: `cryptography`, `jwt`
 
+## Environment & Directory Catalog Reference
+- Central Catalog: `dev_md_guides/directory.md` (sample committed as `dev_md_guides/directory.md.sample`).
+- All workspace paths, servers, backend links, frontend links, and external endpoints are centralized in this catalog.
+- Invariant: Never hardcode local filesystem paths or network URLs directly across project markdown files.
+
 ## Architectural Invariants & Boundary Rules
 - Gateway layer (`src/api`) must not directly access database session pool without passing through domain service.
+- Zero Hardcoded Endpoints: All environment directories, servers, and URLs must be referenced via `directory.md` (or `directory.md.sample`).
 ```
 
 ---

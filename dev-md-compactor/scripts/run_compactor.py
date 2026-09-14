@@ -301,6 +301,7 @@ def write_structure_md(
     dir_summary: dict,
     imports_map: dict,
     manifests: list[str],
+    catalog: dict[str, str] | None = None,
 ) -> None:
     """Regenerates dev_md_guides/structure.md with directory map and dependency graph."""
     now_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -335,6 +336,11 @@ def write_structure_md(
         lines.append("")
 
     lines.extend([
+        "## Environment & Directory Catalog Reference",
+        "- Central Catalog: `dev_md_guides/directory.md` (sample committed as `dev_md_guides/directory.md.sample`).",
+        "- All workspace paths, servers, backend links, frontend links, and external endpoints are centralized in this catalog.",
+        "- Invariant: Never hardcode local filesystem paths or network URLs directly across project markdown files.",
+        "",
         "## Architectural Invariants & Boundary Rules",
         "- Internal modules should adhere to defined dependency boundaries without cyclic imports.",
         "- Configuration, secrets, and environment overrides must not be hardcoded in application logic.",
@@ -389,8 +395,6 @@ def append_changelog_md(guides_dir: Path, modified_nodes: list[dict], git_info: 
 def ensure_directory_gitignored(root_dir: Path, guides_dir: Path) -> None:
     """Ensures local directory.md is added to .gitignore so private paths/servers aren't committed."""
     gitignore_path = root_dir / ".gitignore"
-    if not gitignore_path.exists():
-        return
 
     try:
         try:
@@ -401,24 +405,39 @@ def ensure_directory_gitignored(root_dir: Path, guides_dir: Path) -> None:
         target_ignore = f"{rel_guides}/directory.md"
         target_allow = f"!{rel_guides}/directory.md.sample"
 
-        content = gitignore_path.read_text(encoding="utf-8", errors="replace")
-        lines = [line.strip() for line in content.splitlines()]
+        content = ""
+        lines = []
+        if gitignore_path.exists():
+            content = gitignore_path.read_text(encoding="utf-8", errors="replace")
+            lines = [line.strip() for line in content.splitlines()]
+        elif not (root_dir / ".git").exists() and not any(root_dir.glob(".git*")):
+            # Not in a git repo and no existing .gitignore, skip creating
+            return
 
-        if target_ignore not in lines and "directory.md" not in lines:
-            addition = (
-                "\n# dev_md_guides local environment catalog (deploy sample only)\n"
-                f"{target_ignore}\n"
-                f"{target_allow}\n"
-            )
-            gitignore_path.write_text(content.rstrip() + addition, encoding="utf-8")
+        needs_ignore = target_ignore not in lines and "directory.md" not in lines and f"/{target_ignore}" not in lines
+        needs_allow = target_allow not in lines and f"!/{target_allow[1:]}" not in lines
+
+        additions = []
+        if needs_ignore:
+            additions.append(target_ignore)
+        if needs_allow:
+            additions.append(target_allow)
+
+        if additions:
+            block = "# dev_md_guides local environment catalog (deploy sample only)\n" + "\n".join(additions) + "\n"
+            if content.strip():
+                new_content = content.rstrip() + "\n\n" + block
+            else:
+                new_content = block
+            gitignore_path.write_text(new_content, encoding="utf-8")
     except Exception:
         pass
 
 
-def load_directory_catalog(guides_dir: Path) -> dict[str, str]:
+def load_directory_catalog_grouped(guides_dir: Path) -> dict[str, dict[str, str]]:
     """
-    Parses key-value mappings from directory.md (or directory.md.sample fallback).
-    Allows agents and scripts to resolve logical references without hardcoding.
+    Parses key-value mappings from directory.md (or directory.md.sample fallback)
+    grouped by category header.
     """
     target = guides_dir / "directory.md"
     if not target.exists():
@@ -426,18 +445,77 @@ def load_directory_catalog(guides_dir: Path) -> dict[str, str]:
     if not target.exists():
         return {}
 
-    catalog: dict[str, str] = {}
+    grouped: dict[str, dict[str, str]] = {}
+    current_category = "General"
+    in_code_block = False
+
     try:
-        for line in target.read_text(encoding="utf-8", errors="replace").splitlines():
-            line = line.strip()
-            match = re.match(r"^-\s+\*\*([^*]+)\*\*:\s*`?([^`]+)`?", line)
-            if match:
-                key = match.group(1).strip()
-                val = match.group(2).strip()
-                catalog[key] = val
+        content = target.read_text(encoding="utf-8-sig", errors="replace")
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            # Code fence toggle
+            if line.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+
+            # Category headers: e.g. ## 1. Local Workspace & Project Directories
+            header_match = re.match(r"^#{2,4}\s+(?:(?:\d+[\.\)]\s*)?)(.*)$", line)
+            if header_match:
+                cat_title = header_match.group(1).strip()
+                current_category = cat_title
+                grouped.setdefault(current_category, {})
+                continue
+
+            # Table rows: | Key | Value | Notes |
+            if line.startswith("|") and line.endswith("|"):
+                cells = [c.strip() for c in line.strip("|").split("|")]
+                if len(cells) >= 2:
+                    # Ignore separator rows like |---|---|
+                    if all(set(c) <= {"-", ":", " "} for c in cells):
+                        continue
+                    # Ignore table header rows
+                    if cells[0].lower() in ("key", "name", "service", "service name", "directory", "item", "variable", "endpoint") and \
+                       cells[1].lower() in ("value", "url", "path", "endpoint", "endpoint url", "link"):
+                        continue
+                    key = cells[0].strip("*_`")
+                    val = cells[1]
+                    if val.startswith("`") and val.endswith("`") and val.count("`") == 2:
+                        val = val[1:-1].strip()
+                    if key:
+                        grouped.setdefault(current_category, {})[key] = val
+                continue
+
+            # Bullet points: - **Key**: Value, * `Key`: Value, + Key: Value, 1. **Key**: Value
+            bullet_match = re.match(r"^(?:[-*+]|\d+\.)\s+(?:\*\*|__)?`?([^`*_\r\n:]+?)`?(?:\*\*|__)?:\s*(.*)$", line)
+            if bullet_match:
+                key = bullet_match.group(1).strip()
+                val = bullet_match.group(2).strip()
+                # If entire value is enclosed in a single pair of backticks, strip them
+                if val.startswith("`") and val.endswith("`") and val.count("`") == 2:
+                    val = val[1:-1].strip()
+                if key:
+                    grouped.setdefault(current_category, {})[key] = val
     except Exception:
         pass
-    return catalog
+
+    return grouped
+
+
+def load_directory_catalog(guides_dir: Path) -> dict[str, str]:
+    """
+    Parses flat key-value mappings from directory.md (or directory.md.sample fallback).
+    Allows agents and scripts to resolve logical references without hardcoding.
+    """
+    grouped = load_directory_catalog_grouped(guides_dir)
+    flat: dict[str, str] = {}
+    for cat_entries in grouped.values():
+        flat.update(cat_entries)
+    return flat
 
 
 def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir: Path | None = None) -> None:
@@ -541,6 +619,7 @@ def print_report(
     dir_summary: dict,
     manifests: list[str],
     catalog: dict[str, str] | None = None,
+    grouped_catalog: dict[str, dict[str, str]] | None = None,
 ) -> None:
     """Prints plain-text context report for agent consumption."""
     print("=== PROJECT GROUND TRUTH REPORT ===")
@@ -551,6 +630,14 @@ def print_report(
     print(f"Directories:   {len(dir_summary)} modules scanned")
     if catalog:
         print(f"Directory Map: {len(catalog)} environment/service entries resolved")
+        if grouped_catalog:
+            for cat, entries in grouped_catalog.items():
+                print(f"  [{cat}]")
+                for k, v in entries.items():
+                    print(f"    - {k}: {v}")
+        else:
+            for k, v in catalog.items():
+                print(f"    - {k}: {v}")
     print(f"Changed Files: {len(modified_nodes)} files with code changes")
     if modified_nodes:
         for node in modified_nodes:
@@ -582,16 +669,17 @@ def main():
     modified_nodes = get_modified_code_symbols(root_dir)
     dir_summary, imports_map, manifests = build_structure_graph(root_dir)
     catalog = load_directory_catalog(guides_dir)
+    grouped_catalog = load_directory_catalog_grouped(guides_dir)
 
     if args.report_only:
-        print_report(git_info, modified_nodes, dir_summary, manifests, catalog)
+        print_report(git_info, modified_nodes, dir_summary, manifests, catalog, grouped_catalog)
         return
 
     # Write guides
     guides_dir.mkdir(parents=True, exist_ok=True)
     seed_static_templates(guides_dir, templates_dir, root_dir)
     write_branch_md(guides_dir, git_info)
-    write_structure_md(guides_dir, dir_summary, imports_map, manifests)
+    write_structure_md(guides_dir, dir_summary, imports_map, manifests, catalog=catalog)
     append_changelog_md(guides_dir, modified_nodes, git_info)
 
     print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (branch.md, structure.md, changelog.md, features.md, memory.md, directory.md.sample)")

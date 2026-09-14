@@ -13,7 +13,8 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 2. Group files by module/folder and summarize architectural roles (e.g. gateway, domain model, persistent store).
 3. Explicitly document main entry points (e.g., `main.py`, `server.ts`, `cli.py`, `Cargo.toml`).
 4. Note discovered inter-module import relationships and dependency gates.
-5. Overwrite the file completely.
+5. Reference environment endpoints and directory pointers via `dev_md_guides/directory.md`.
+6. Overwrite the file completely.
 
 **Size Limit:** ~150 lines. If the tree exceeds this limit, summarize nested subdirectories in prose instead of listing every file path.
 

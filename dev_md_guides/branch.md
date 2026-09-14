@@ -1,13 +1,14 @@
 # Branch State & Worktree Topology
 
 - **Active Branch**: `feat/dev-md-compactor`
-- **HEAD Commit**: `a07645a` — feat(dev-md-compactor): add directory.md and directory.md.sample zero-hardcoding environment catalog
-- **Tracking Status**: Ahead 1 commits, behind 0 commits relative to origin/feat/dev-md-compactor
-- **Last Updated**: 2026-09-14 09:35:15 UTC
+- **HEAD Commit**: `3c815f8` — docs(dev_md_guides): synchronize living documentation following directory.md catalog implementation
+- **Tracking Status**: Ahead 0 commits, behind 0 commits relative to origin/feat/dev-md-compactor
+- **Last Updated**: 2026-09-14 09:57:04 UTC
 
 ## Divergence Analysis
 
 ### Recent Commits (Local)
+- `3c815f8` (2026-09-14 12:35:45 +0300): docs(dev_md_guides): synchronize living documentation following directory.md catalog implementation
 - `a07645a` (2026-09-14 12:34:51 +0300): feat(dev-md-compactor): add directory.md and directory.md.sample zero-hardcoding environment catalog
 - `1f7253d` (2026-09-09 13:51:15 +0300): feat: add dev-md-compactor agent skill, living docs, and research archive
 - `540406c` (2026-05-07 16:37:30 +0300): docs: add SECURITY, CODE_OF_CONDUCT, marketplace draft, verification request
@@ -19,7 +20,20 @@
 - `d73d76b` (2026-05-07 16:16:18 +0300): chore: initial ai-skills setup
 
 ### Uncommitted Working Tree State
-- *Working tree clean. No uncommitted modifications.*
+- `M .agent/skills/dev-md-compactor/references/file-formats.md`
+- `M .agent/skills/dev-md-compactor/references/update-rules.md`
+- `M .agent/skills/dev-md-compactor/scripts/gather_context.sh`
+- `M .agent/skills/dev-md-compactor/scripts/run_compactor.py`
+- `M .agent/skills/dev-md-compactor/templates/structure.md`
+- `M dev-md-compactor/references/file-formats.md`
+- `M dev-md-compactor/references/update-rules.md`
+- `M dev-md-compactor/scripts/gather_context.sh`
+- `M dev-md-compactor/scripts/run_compactor.py`
+- `M dev-md-compactor/templates/structure.md`
+- `M dev_md_guides/branch.md`
+- `M dev_md_guides/changelog.md`
+- `M dev_md_guides/structure.md`
+- `?? tests/`
 
 ## Integration Checklist
 
