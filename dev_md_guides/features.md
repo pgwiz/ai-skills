@@ -2,7 +2,8 @@
 _Last updated: 2026-09-09_
 
 ## Done
-- **`dev-md-compactor` Agent Skill** — AST-aware deterministic context compactor maintaining `dev_md_guides/` (branch.md, features.md, structure.md, memory.md, changelog.md). Location: `dev-md-compactor/`.
+- **`dev-md-compactor` Agent Skill** — AST-aware deterministic context compactor maintaining `dev_md_guides/` (branch.md, features.md, structure.md, memory.md, changelog.md, directory.md.sample). Location: `dev-md-compactor/`.
+- **Zero-Hardcoded Directory Catalog (`directory.md` & `directory.md.sample`)** — Centralized environment, servers, frontend/backend links catalog; gitignored local file with tracked sanitized sample deployed to GitHub. Location: `dev-md-compactor/templates/`, `dev_md_guides/directory.md.sample`.
 - **Antigravity `/compact-docs` Workflow** — Workspace slash command and project instructions for autonomous compaction. Location: `.agent/workflows/compact-docs.md`, `GEMINI.md`.
 - **Research Documentation Archive** — Formal technical analysis on context compaction and memory persistence. Location: `research/`.
 - **`agent-memory` Skill** — Persistent developer identity, safe file writing rules, and cross-session bootstrap. Location: `agent-memory/`.

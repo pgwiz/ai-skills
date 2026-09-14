@@ -57,8 +57,8 @@ fi
 # ---------------------------------------------------------------------------
 hr "DIRECTORY TREE (pruned)"
 if command -v tree >/dev/null 2>&1; then
-  tree -L 3 -I 'node_modules|.git|dist|build|__pycache__|*.pyc|.venv|venv|target|.next|coverage|.turbo|vendor|dev_md_guides' --dirsfirst
-else
+  tree -L 3 -I 'node_modules|.git|dist|build|__pycache__|*.pyc|.venv|venv|target|.next|coverage|.turbo|vendor|dev_md_guides' --dirsfirst 2>/dev/null
+elif find --version >/dev/null 2>&1; then
   find . \
     -path './node_modules' -prune -o \
     -path './.git' -prune -o \
@@ -72,6 +72,8 @@ else
     -path './dev_md_guides' -prune -o \
     -path './vendor' -prune -o \
     -maxdepth 3 -print 2>/dev/null | sed 's|[^/]*/|  |g'
+else
+  git ls-files 2>/dev/null | head -50
 fi
 
 # ---------------------------------------------------------------------------
@@ -88,7 +90,12 @@ done
 # ---------------------------------------------------------------------------
 hr "EXISTING dev_md_guides/ FILE SIZES (if present)"
 if [ -d "dev_md_guides" ]; then
-  wc -l dev_md_guides/*.md 2>/dev/null
+  wc -l dev_md_guides/*.md dev_md_guides/*.md.sample 2>/dev/null
+  if [ -f "dev_md_guides/directory.md" ]; then
+    echo "--- directory.md (local active catalog detected) ---"
+  elif [ -f "dev_md_guides/directory.md.sample" ]; then
+    echo "--- directory.md.sample (template sample detected) ---"
+  fi
 else
   echo "(dev_md_guides/ does not exist yet — will be created)"
 fi

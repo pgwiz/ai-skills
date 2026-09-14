@@ -1,5 +1,5 @@
 # Codebase Architecture & Directory Dependency Graph
-_Last regenerated: 2026-09-09 10:50:01 UTC by dev-md-compactor_
+_Last regenerated: 2026-09-14 09:33:27 UTC by dev-md-compactor_
 
 ## Project Manifests & Build Tools
 - *(No standard build manifests detected at root)*
@@ -23,7 +23,7 @@ _Last regenerated: 2026-09-09 10:50:01 UTC by dev-md-compactor_
 - **Discovered Module Dependencies**: `argparse, ast, datetime, os, pathlib, re, subprocess, sys`
 
 ### `dev-md-compactor/templates/`
-- **Files (5)**: `branch.md, changelog.md, features.md, memory.md, structure.md`
+- **Files (7)**: `branch.md, changelog.md, directory.md, directory.md.sample, features.md, memory.md, structure.md`
 
 ### `install/`
 - **Files (3)**: `INSTALL.md, install.ps1, install.sh`
@@ -37,3 +37,4 @@ _Last regenerated: 2026-09-09 10:50:01 UTC by dev-md-compactor_
 ## Architectural Invariants & Boundary Rules
 - Internal modules should adhere to defined dependency boundaries without cyclic imports.
 - Configuration, secrets, and environment overrides must not be hardcoded in application logic.
+- Zero Hardcoded Endpoints: Do not hardcode machine directories, server IPs, backend links, or frontend links across markdown docs; resolve and reference them via directory.md (only directory.md.sample is committed to version control).

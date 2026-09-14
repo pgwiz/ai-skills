@@ -77,3 +77,19 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 3. Reference `memory.md` for architectural reasoning rather than duplicating verbose discussion.
 
 **Size Limit & Archiving:** When the file exceeds ~500 lines, extract entries older than the latest milestone into `dev_md_guides/archive/changelog-<date-range>.md` and leave a one-line link at the bottom. Never delete historical entries.
+
+---
+
+## `dev_md_guides/directory.md` & `dev_md_guides/directory.md.sample` — Centralized Catalog & Sample Template
+
+**Principle:** Documentation and agents must never hardcode machine-specific paths, private IPs, backend links, frontend links, or server URLs directly into `structure.md`, `branch.md`, `memory.md`, or codebase markdown. Hardcoding breaks cross-machine portability and risks leaking private network topology to GitHub.
+
+**Rules:**
+1. Maintain `directory.md.sample` in Git as the canonical schema and current example template containing sanitized placeholders (e.g. `http://localhost:3000`, `http://localhost:8000`, `./data`).
+2. The actual runtime `directory.md` is populated locally (seeded from `directory.md.sample` if missing) and added to `.gitignore`.
+3. All other guides (`structure.md`, `memory.md`, `features.md`) must refer to services and directories by logical alias or relative reference defined in `directory.md`.
+4. When new services, ports, or directory aliases are added to the project, update both `directory.md` and `directory.md.sample` with a sanitized example.
+5. Never commit private credentials, auth tokens, internal IPs, or machine-specific absolute directories to GitHub.
+
+**Size Limit:** ~100 lines.
+

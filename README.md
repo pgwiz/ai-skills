@@ -11,6 +11,7 @@ A specialized context compactor and living documentation engine. Transforms conv
 - `structure.md` — Module topography, entry points, and inter-folder import dependencies.
 - `memory.md` — Durable Architecture Decision Records (ADRs) and immutable invariants.
 - `changelog.md` — Append-only chronological audit log of operational runs and modified AST symbols.
+- `directory.md` & `directory.md.sample` — Centralized environment and routing catalog (servers, backend/frontend links, project directories). Prevents hardcoded paths and protects private endpoints by committing only `directory.md.sample` to GitHub.
 
 Backed by in-depth research: see [research/Agent Memory Compaction Research.md](research/Agent%20Memory%20Compaction%20Research.md).
 

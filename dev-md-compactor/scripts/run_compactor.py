@@ -5,11 +5,13 @@ Part of the dev-md-compactor agent skill (https://github.com/pgwiz/ai-skills)
 
 Extracts repository ground truth using git and AST parsers to maintain:
   dev_md_guides/
-    ├── branch.md     (overwritten: current branch, HEAD, uncommitted diffs)
-    ├── structure.md  (regenerated: directory topography, imports, manifests)
-    ├── changelog.md  (append-only: timestamped operational & AST audit)
-    ├── features.md   (seeded if missing: feature matrix & SDD progress)
-    └── memory.md     (seeded if missing: ADRs and immutable invariants)
+    ├── branch.md            (overwritten: current branch, HEAD, uncommitted diffs)
+    ├── structure.md         (regenerated: directory topography, imports, manifests)
+    ├── changelog.md         (append-only: timestamped operational & AST audit)
+    ├── features.md          (seeded if missing: feature matrix & SDD progress)
+    ├── memory.md            (seeded if missing: ADRs and immutable invariants)
+    ├── directory.md.sample  (seeded if missing: committed sample service/path catalog)
+    └── directory.md         (seeded if missing: local environment catalog, gitignored)
 """
 
 import ast
@@ -336,6 +338,7 @@ def write_structure_md(
         "## Architectural Invariants & Boundary Rules",
         "- Internal modules should adhere to defined dependency boundaries without cyclic imports.",
         "- Configuration, secrets, and environment overrides must not be hardcoded in application logic.",
+        "- Zero Hardcoded Endpoints: Do not hardcode machine directories, server IPs, backend links, or frontend links across markdown docs; resolve and reference them via directory.md (only directory.md.sample is committed to version control).",
         "",
     ])
 
@@ -383,8 +386,62 @@ def append_changelog_md(guides_dir: Path, modified_nodes: list[dict], git_info: 
     log_path.write_text(updated, encoding="utf-8")
 
 
-def seed_static_templates(guides_dir: Path, templates_dir: Path | None) -> None:
-    """Seeds features.md and memory.md from templates if they do not exist."""
+def ensure_directory_gitignored(root_dir: Path, guides_dir: Path) -> None:
+    """Ensures local directory.md is added to .gitignore so private paths/servers aren't committed."""
+    gitignore_path = root_dir / ".gitignore"
+    if not gitignore_path.exists():
+        return
+
+    try:
+        try:
+            rel_guides = guides_dir.relative_to(root_dir).as_posix()
+        except ValueError:
+            rel_guides = guides_dir.name
+
+        target_ignore = f"{rel_guides}/directory.md"
+        target_allow = f"!{rel_guides}/directory.md.sample"
+
+        content = gitignore_path.read_text(encoding="utf-8", errors="replace")
+        lines = [line.strip() for line in content.splitlines()]
+
+        if target_ignore not in lines and "directory.md" not in lines:
+            addition = (
+                "\n# dev_md_guides local environment catalog (deploy sample only)\n"
+                f"{target_ignore}\n"
+                f"{target_allow}\n"
+            )
+            gitignore_path.write_text(content.rstrip() + addition, encoding="utf-8")
+    except Exception:
+        pass
+
+
+def load_directory_catalog(guides_dir: Path) -> dict[str, str]:
+    """
+    Parses key-value mappings from directory.md (or directory.md.sample fallback).
+    Allows agents and scripts to resolve logical references without hardcoding.
+    """
+    target = guides_dir / "directory.md"
+    if not target.exists():
+        target = guides_dir / "directory.md.sample"
+    if not target.exists():
+        return {}
+
+    catalog: dict[str, str] = {}
+    try:
+        for line in target.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            match = re.match(r"^-\s+\*\*([^*]+)\*\*:\s*`?([^`]+)`?", line)
+            if match:
+                key = match.group(1).strip()
+                val = match.group(2).strip()
+                catalog[key] = val
+    except Exception:
+        pass
+    return catalog
+
+
+def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir: Path | None = None) -> None:
+    """Seeds features.md, memory.md, directory.md.sample, and directory.md from templates if they do not exist."""
     features_path = guides_dir / "features.md"
     if not features_path.exists():
         template_features = templates_dir / "features.md" if templates_dir else None
@@ -417,8 +474,74 @@ def seed_static_templates(guides_dir: Path, templates_dir: Path | None) -> None:
                 encoding="utf-8",
             )
 
+    # Seed directory.md.sample (committed template with sanitized examples)
+    sample_path = guides_dir / "directory.md.sample"
+    if not sample_path.exists():
+        template_sample = templates_dir / "directory.md.sample" if templates_dir else None
+        if template_sample and template_sample.exists():
+            sample_content = template_sample.read_text(encoding="utf-8")
+        else:
+            sample_content = (
+                "# Environment, Service & Directory Catalog\n"
+                "_Single source of truth for workspace paths, servers, backend links, frontend links, and ports._\n"
+                "_All living guides in `dev_md_guides/` rely on the keys defined here rather than hardcoding paths or URLs._\n\n"
+                "> [!IMPORTANT]\n"
+                "> **Deployment Rule**: Only deploy `directory.md.sample` with sanitized examples to GitHub.\n"
+                "> Keep `directory.md` gitignored for active machine/environment values and private endpoints.\n\n"
+                "## 1. Local Workspace & Project Directories\n"
+                "- **Project Root**: `.` (Repository root worktree)\n"
+                "- **Living Guides Directory**: `./dev_md_guides`\n"
+                "- **Agent Configuration Directory**: `~/.gemini/config/skills` (or `.agent/skills`)\n"
+                "- **Distribution / Build Directory**: `./dist`\n"
+                "- **Data & Artifacts Directory**: `./data`\n\n"
+                "## 2. Infrastructure & Servers\n"
+                "- **Development Host**: `localhost`\n"
+                "- **Application Server (Local Dev)**: `127.0.0.1` (Port: `3000`)\n"
+                "- **Backend API Server (Local Dev)**: `127.0.0.1` (Port: `8000`)\n"
+                "- **Database Server (Local Dev)**: `127.0.0.1` (Port: `5432`)\n"
+                "- **Redis / Cache Server**: `127.0.0.1` (Port: `6379`)\n"
+                "- **Staging Gateway Host**: `staging.internal.example.com`\n"
+                "- **Production Gateway Host**: `api.example.com`\n\n"
+                "## 3. Frontend Links & Portals\n"
+                "- **Web App (Local Dev)**: `http://localhost:3000`\n"
+                "- **Web App (Staging)**: `https://staging-app.example.com`\n"
+                "- **Web App (Production)**: `https://app.example.com`\n"
+                "- **Admin Dashboard**: `http://localhost:3000/admin`\n"
+                "- **Component Explorer / Storybook**: `http://localhost:6006`\n\n"
+                "## 4. Backend Links & APIs\n"
+                "- **API Base URL (Local Dev)**: `http://localhost:8000/api/v1`\n"
+                "- **API Base URL (Staging)**: `https://staging-api.example.com/api/v1`\n"
+                "- **API Base URL (Production)**: `https://api.example.com/api/v1`\n"
+                "- **API Interactive Docs (Swagger / OpenAPI)**: `http://localhost:8000/docs`\n"
+                "- **Health / Liveness Check**: `http://localhost:8000/healthz`\n"
+                "- **GraphQL Endpoint**: `http://localhost:8000/graphql`\n\n"
+                "## 5. External Services & Cloud Resources\n"
+                "- **Identity / Auth Provider (SSO)**: `https://auth.example.com`\n"
+                "- **Cloud Storage Bucket**: `https://storage.googleapis.com/sample-bucket`\n"
+                "- **Webhook Listener**: `http://localhost:8000/webhooks/incoming`\n"
+            )
+        sample_path.write_text(sample_content, encoding="utf-8")
 
-def print_report(git_info: dict, modified_nodes: list[dict], dir_summary: dict, manifests: list[str]) -> None:
+    # Seed directory.md (local active overrides, gitignored)
+    directory_path = guides_dir / "directory.md"
+    if not directory_path.exists():
+        template_dir = templates_dir / "directory.md" if templates_dir else None
+        if template_dir and template_dir.exists():
+            directory_path.write_text(template_dir.read_text(encoding="utf-8"), encoding="utf-8")
+        else:
+            directory_path.write_text(sample_path.read_text(encoding="utf-8"), encoding="utf-8")
+
+    if root_dir:
+        ensure_directory_gitignored(root_dir, guides_dir)
+
+
+def print_report(
+    git_info: dict,
+    modified_nodes: list[dict],
+    dir_summary: dict,
+    manifests: list[str],
+    catalog: dict[str, str] | None = None,
+) -> None:
     """Prints plain-text context report for agent consumption."""
     print("=== PROJECT GROUND TRUTH REPORT ===")
     print(f"Active Branch: {git_info['branch']}")
@@ -426,6 +549,8 @@ def print_report(git_info: dict, modified_nodes: list[dict], dir_summary: dict, 
     print(f"Tracking:      {git_info['tracking']}")
     print(f"Manifests:     {', '.join(manifests) if manifests else 'none'}")
     print(f"Directories:   {len(dir_summary)} modules scanned")
+    if catalog:
+        print(f"Directory Map: {len(catalog)} environment/service entries resolved")
     print(f"Changed Files: {len(modified_nodes)} files with code changes")
     if modified_nodes:
         for node in modified_nodes:
@@ -456,19 +581,20 @@ def main():
     git_info = get_git_info(root_dir)
     modified_nodes = get_modified_code_symbols(root_dir)
     dir_summary, imports_map, manifests = build_structure_graph(root_dir)
+    catalog = load_directory_catalog(guides_dir)
 
     if args.report_only:
-        print_report(git_info, modified_nodes, dir_summary, manifests)
+        print_report(git_info, modified_nodes, dir_summary, manifests, catalog)
         return
 
     # Write guides
     guides_dir.mkdir(parents=True, exist_ok=True)
-    seed_static_templates(guides_dir, templates_dir)
+    seed_static_templates(guides_dir, templates_dir, root_dir)
     write_branch_md(guides_dir, git_info)
     write_structure_md(guides_dir, dir_summary, imports_map, manifests)
     append_changelog_md(guides_dir, modified_nodes, git_info)
 
-    print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (branch.md, structure.md, changelog.md, features.md, memory.md)")
+    print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (branch.md, structure.md, changelog.md, features.md, memory.md, directory.md.sample)")
 
 
 if __name__ == "__main__":

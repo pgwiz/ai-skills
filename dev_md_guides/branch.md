@@ -1,13 +1,14 @@
 # Branch State & Worktree Topology
 
 - **Active Branch**: `feat/dev-md-compactor`
-- **HEAD Commit**: `540406c` — docs: add SECURITY, CODE_OF_CONDUCT, marketplace draft, verification request
-- **Tracking Status**: Up to date
-- **Last Updated**: 2026-09-09 10:50:01 UTC
+- **HEAD Commit**: `1f7253d` — feat: add dev-md-compactor agent skill, living docs, and research archive
+- **Tracking Status**: Ahead 0 commits, behind 0 commits relative to origin/feat/dev-md-compactor
+- **Last Updated**: 2026-09-14 09:33:27 UTC
 
 ## Divergence Analysis
 
 ### Recent Commits (Local)
+- `1f7253d` (2026-09-09 13:51:15 +0300): feat: add dev-md-compactor agent skill, living docs, and research archive
 - `540406c` (2026-05-07 16:37:30 +0300): docs: add SECURITY, CODE_OF_CONDUCT, marketplace draft, verification request
 - `850166e` (2026-05-07 16:32:21 +0300): docs: format and clarify GitHub CLI install steps
 - `7da5717` (2026-05-07 16:30:33 +0300): docs: remove remaining hardcoded username mention
@@ -17,36 +18,30 @@
 - `d73d76b` (2026-05-07 16:16:18 +0300): chore: initial ai-skills setup
 
 ### Uncommitted Working Tree State
-- `A  .agent/skills/dev-md-compactor/SKILL.md`
-- `A  .agent/skills/dev-md-compactor/references/file-formats.md`
-- `A  .agent/skills/dev-md-compactor/references/update-rules.md`
-- `A  .agent/skills/dev-md-compactor/scripts/gather_context.sh`
-- `A  .agent/skills/dev-md-compactor/scripts/run_compactor.py`
-- `A  .agent/skills/dev-md-compactor/templates/branch.md`
-- `A  .agent/skills/dev-md-compactor/templates/changelog.md`
-- `A  .agent/skills/dev-md-compactor/templates/features.md`
-- `A  .agent/skills/dev-md-compactor/templates/memory.md`
-- `A  .agent/skills/dev-md-compactor/templates/structure.md`
-- `A  .agent/workflows/compact-docs.md`
-- `A  GEMINI.md`
-- `M  README.md`
-- `A  dev-md-compactor/SKILL.md`
-- `A  dev-md-compactor/references/file-formats.md`
-- `A  dev-md-compactor/references/update-rules.md`
-- `A  dev-md-compactor/scripts/gather_context.sh`
-- `A  dev-md-compactor/scripts/run_compactor.py`
-- `A  dev-md-compactor/templates/branch.md`
-- `A  dev-md-compactor/templates/changelog.md`
-- `A  dev-md-compactor/templates/features.md`
-- `A  dev-md-compactor/templates/memory.md`
-- `A  dev-md-compactor/templates/structure.md`
-- `A  dev_md_guides/branch.md`
-- `A  dev_md_guides/changelog.md`
-- `A  dev_md_guides/features.md`
-- `A  dev_md_guides/memory.md`
-- `A  dev_md_guides/structure.md`
-- `A  "research/Agent Memory Compaction Research.docx"`
-- `A  "research/Agent Memory Compaction Research.md"`
+- `M .agent/skills/dev-md-compactor/SKILL.md`
+- `M .agent/skills/dev-md-compactor/references/file-formats.md`
+- `M .agent/skills/dev-md-compactor/references/update-rules.md`
+- `M .agent/skills/dev-md-compactor/scripts/gather_context.sh`
+- `M .agent/skills/dev-md-compactor/scripts/run_compactor.py`
+- `M .agent/workflows/compact-docs.md`
+- `M .gitignore`
+- `M GEMINI.md`
+- `M README.md`
+- `M dev-md-compactor/SKILL.md`
+- `M dev-md-compactor/references/file-formats.md`
+- `M dev-md-compactor/references/update-rules.md`
+- `M dev-md-compactor/scripts/gather_context.sh`
+- `M dev-md-compactor/scripts/run_compactor.py`
+- `M dev_md_guides/branch.md`
+- `M dev_md_guides/changelog.md`
+- `M dev_md_guides/features.md`
+- `M dev_md_guides/memory.md`
+- `M dev_md_guides/structure.md`
+- `?? .agent/skills/dev-md-compactor/templates/directory.md`
+- `?? .agent/skills/dev-md-compactor/templates/directory.md.sample`
+- `?? dev-md-compactor/templates/directory.md`
+- `?? dev-md-compactor/templates/directory.md.sample`
+- `?? dev_md_guides/directory.md.sample`
 
 ## Integration Checklist
 

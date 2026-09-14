@@ -9,6 +9,7 @@ This project uses the **dev-md-compactor** skill (`dev-md-compactor/SKILL.md` or
 - `dev_md_guides/structure.md` — codebase topology, entry points, and module dependency graph
 - `dev_md_guides/memory.md` — durable architecture decisions (ADRs), system invariants, conventions, and gotchas
 - `dev_md_guides/changelog.md` — reverse-chronological, append-only operational audit log
+- `dev_md_guides/directory.md` & `directory.md.sample` — environment catalog for directories, servers, backend/frontend links, and ports (deploy sample only)
 
 ### Proactive Trigger Protocol
 - **Trigger automatically** whenever a non-trivial engineering task wraps up (multiple files modified, a feature delivered, a refactor concluded, or a bug root-caused) — do not wait to be asked.
@@ -16,3 +17,4 @@ This project uses the **dev-md-compactor** skill (`dev-md-compactor/SKILL.md` or
 
 ### Rehydration Rule
 - Before starting any non-trivial coding task, read `dev_md_guides/branch.md` and `dev_md_guides/memory.md` first if they exist — they contain project ground truths and invariants that cannot be recovered by reading code alone.
+- Never hardcode directory paths, server IPs, backend URLs, or frontend URLs across markdown files; rely on `dev_md_guides/directory.md`.

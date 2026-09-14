@@ -1,2 +1,9 @@
 .env
 .agent-config
+__pycache__/
+*.pyc
+
+# dev_md_guides local environment catalog (deploy sample only)
+dev_md_guides/directory.md
+!dev_md_guides/directory.md.sample
+
