@@ -1,6 +1,6 @@
 ---
 name: dev-md-compactor
-description: Compacts the ongoing coding session, conversational state, AST code modifications, and git changes into a persistent dev_md_guides/ folder of living Markdown docs (branch.md, features.md, structure.md, memory.md, changelog.md, directory.md.sample). Use whenever the user asks to "compact memory", "save session state", "update dev guides", "compact context", "save our progress", "sync memory", "update docs", or when concluding a substantial engineering task or approaching context token limits.
+description: Compacts the ongoing coding session, conversational state, AST code modifications, and git changes into a persistent dev_md_guides/ folder of living Markdown docs (branch.md, features.md, structure.md, memory.md, changelog.md, directory.md.sample, credentials.md.sample). Use whenever the user asks to "compact memory", "save session state", "update dev guides", "compact context", "save our progress", "sync memory", "update docs", or when concluding a substantial engineering task or approaching context token limits.
 ---
 
 # Dev MD Compactor
@@ -13,6 +13,7 @@ Turns an interactive coding session into durable, structured repository memory i
 - **memory.md** — durable architectural invariants, ADRs, trade-offs, and non-obvious gotchas (append-only with explicit supersession)
 - **changelog.md** — chronological, append-only audit trail of operational runs, modified AST symbols, and test/build outcomes (append-only)
 - **directory.md** & **directory.md.sample** — environment catalog for project directories, servers, backend links, frontend links, and ports. All other markdown guides rely on this catalog instead of hardcoding paths or URLs. Only `directory.md.sample` is committed to GitHub with sanitized current examples; `directory.md` stays gitignored for active machine/environment values.
+- **credentials.md** & **credentials.md.sample** — credentials and secrets reference. Real secrets remain strictly local in gitignored `credentials.md`; only sanitized `credentials.md.sample` with mock placeholders is committed to GitHub. Never commit credentials to GitHub; if the user ever specifies doing so, the agent MUST first explicitly warn the user about critical security risks.
 
 ## Core Architectural Rules
 
@@ -22,7 +23,9 @@ Turns an interactive coding session into durable, structured repository memory i
    - *Durable decision memory* (`memory.md`) is protected against lossy summarization. It captures the "why", invariants, and rejected alternatives. Pruning is permitted only when an earlier decision is explicitly superseded.
 2. **Zero Hardcoded Directories & Endpoints:**
    - Never hardcode local filesystem paths, internal server IPs, backend API URLs, or frontend URLs across any markdown files. All markdown guides and agent prompts must rely on `directory.md`. Only `directory.md.sample` is deployed/committed to GitHub with current example values.
-
+3. **Zero Credential Exposure & User Warning Protocol:**
+   - Real credentials, private keys, database passwords, and API tokens must NEVER be committed to GitHub or exposed in git-tracked living guides. Active secrets reside exclusively in `credentials.md` (which MUST be gitignored). Only sanitized `credentials.md.sample` is committed.
+   - If the user ever specifies or requests committing `credentials.md` or any unredacted secrets to git/GitHub, the agent MUST NEVER execute this action without first explicitly warning the user about the critical security risks (credential theft, permanent git history pollution, unauthorized cloud access, data compromise) and requiring explicit user confirmation.
 
 ---
 
@@ -56,6 +59,8 @@ This inspects:
 - Python AST function and class signatures for changed files.
 - Directory topography and inter-module import dependencies.
 - Project manifest files (`pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, etc.).
+- Active directory catalog (`directory.md` / `directory.md.sample`).
+- Credential leak detection across git-tracked living guides.
 
 If `dev_md_guides/` does not exist yet at the project root:
 - The script automatically seeds the files from `dev-md-compactor/templates/`.
@@ -90,6 +95,7 @@ Follow `references/update-rules.md` and `references/file-formats.md` strictly:
 | `dev_md_guides/memory.md` | **Append + Prune** | ~300 lines | ADR entries (context, decision, consequences, rejected alternatives), invariants, and gotchas. Prune only if superseded. |
 | `dev_md_guides/changelog.md` | **Append-only** | ~500 lines | Prepend or append new timestamped session audit with AST modifications and command results. Archive older entries when limit exceeded. |
 | `dev_md_guides/directory.md.sample` (and `directory.md`) | **Seed + Local Maintain** | ~100 lines | Workspace paths, servers, backend/frontend links, ports. Only `directory.md.sample` is committed to GitHub. |
+| `dev_md_guides/credentials.md.sample` (and `credentials.md`) | **Seed + Local Maintain** | ~100 lines | Sanitized credentials schema. Only `credentials.md.sample` is committed to GitHub. Real secrets stay local in `credentials.md`. |
 
 ---
 
@@ -98,7 +104,8 @@ Follow `references/update-rules.md` and `references/file-formats.md` strictly:
 - Ensure every active feature in `features.md` maps to a physical directory or module documented in `structure.md`.
 - Ensure decision entries in `changelog.md` reference corresponding ADR entries in `memory.md` rather than duplicating long rationale.
 - Ensure markdown guides reference services and directories via `directory.md` instead of hardcoding raw paths, IPs, or ports.
-- Verify that `dev_md_guides/directory.md` is ignored in `.gitignore` and only `dev_md_guides/directory.md.sample` is staged for version control.
+- Verify that both `dev_md_guides/directory.md` and `dev_md_guides/credentials.md` are ignored in `.gitignore`, and only `*.sample` files are tracked.
+- Run the credential leak scanner to verify zero unredacted secrets exist in tracked files.
 - Validate that all markdown headers adhere to `references/file-formats.md`.
 - Ensure line count limits are respected.
 
@@ -111,13 +118,14 @@ Follow `references/update-rules.md` and `references/file-formats.md` strictly:
    - In subsequent sessions or after a context reset, immediately read `dev_md_guides/branch.md` and `dev_md_guides/features.md` to rehydrate state and resume execution without loss of momentum.
    - For architectural tasks, consult `dev_md_guides/memory.md` to guarantee alignment with immutable project invariants.
    - When resolving local paths, backend APIs, or frontend dev servers, consult `dev_md_guides/directory.md`.
+   - For secret requirements and auth configurations, reference `dev_md_guides/credentials.md.sample` for schema and local `dev_md_guides/credentials.md` for active values.
 
 ---
 
 ## Skill Assets
 
-- `scripts/run_compactor.py`: Deterministic Python extraction engine (stdlib: ast, subprocess, pathlib).
-- `scripts/gather_context.sh`: Shell extraction script for bash-native environments.
-- `references/update-rules.md`: Complete update semantics, size boundaries, and archiving procedures per file.
-- `references/file-formats.md`: Required markdown section structures for all guide files (including `directory.md.sample` and `directory.md`).
-- `templates/*.md`: Starting skeletons for `branch.md`, `features.md`, `structure.md`, `memory.md`, `changelog.md`, `directory.md.sample`, `directory.md`.
+- `scripts/run_compactor.py`: Deterministic Python extraction engine with secret leak scanner and gitignore guard.
+- `scripts/gather_context.sh`: Shell extraction script with credential tracking audit.
+- `references/update-rules.md`: Complete update semantics, size boundaries, credential security rules, and archiving procedures per file.
+- `references/file-formats.md`: Required markdown section structures for all guide files (including `directory.md.sample` and `credentials.md.sample`).
+- `templates/*.md`: Starting skeletons for `branch.md`, `features.md`, `structure.md`, `memory.md`, `changelog.md`, `directory.md.sample`, `directory.md`, `credentials.md.sample`, `credentials.md`.

@@ -14,7 +14,8 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 3. Explicitly document main entry points (e.g., `main.py`, `server.ts`, `cli.py`, `Cargo.toml`).
 4. Note discovered inter-module import relationships and dependency gates.
 5. Reference environment endpoints and directory pointers via `dev_md_guides/directory.md`.
-6. Overwrite the file completely.
+6. Reference credentials schema via `dev_md_guides/credentials.md.sample`.
+7. Overwrite the file completely.
 
 **Size Limit:** ~150 lines. If the tree exceeds this limit, summarize nested subdirectories in prose instead of listing every file path.
 
@@ -63,6 +64,7 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 2. **Do NOT log routine events** here (routine events belong in `changelog.md`).
 3. Append new ADRs under their respective headers with standard fields: Date, Status, Context, Decision, Consequences, Rejected Alternatives.
 4. **Pruning Gate:** Only prune or replace an entry if an architectural decision is explicitly superseded. When superseding, note: `(supersedes decision from YYYY-MM-DD; see changelog)`. Never delete decisions silently.
+5. Capture critical security invariants: zero credential exposure, gitignore rules for `credentials.md`, and mandatory user-warning protocol before committing any secrets.
 
 **Size Limit:** ~300 lines. When approaching the threshold, re-read and tighten descriptions, merging related constraints while preserving core invariants.
 
@@ -76,6 +78,7 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 1. Prepend or append new timestamped entries for each operational run (newest first).
 2. Record trigger event, active branch, HEAD commit, AST code modifications (modified functions, classes, line numbers), and executed terminal commands with exit codes.
 3. Reference `memory.md` for architectural reasoning rather than duplicating verbose discussion.
+4. Never log unredacted secret values or live credentials into changelog entries.
 
 **Size Limit & Archiving:** When the file exceeds ~500 lines, extract entries older than the latest milestone into `dev_md_guides/archive/changelog-<date-range>.md` and leave a one-line link at the bottom. Never delete historical entries.
 
@@ -94,3 +97,20 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 
 **Size Limit:** ~100 lines.
 
+---
+
+## `dev_md_guides/credentials.md` & `dev_md_guides/credentials.md.sample` — Centralized Secrets Catalog & Security Protocol
+
+**Principle:** Live credentials, API tokens, database connection strings, private encryption keys, and service secrets must NEVER be committed to Git or pushed to GitHub. Leaking secrets into version control causes critical infrastructure vulnerability, immediate compromise by automated crawlers, and irreversible git tree pollution.
+
+**Rules:**
+1. Maintain `credentials.md.sample` in Git containing sanitized, mock placeholders (e.g., `ENC[...]`, `sk-ant-api03-SAMPLE_PLACEHOLDER_KEY`, `postgresql://postgres:REDACTED@localhost:5432/app_db`).
+2. The active runtime `credentials.md` is kept strictly local on the developer's machine and MUST be added to `.gitignore`.
+3. **Mandatory User Warning Protocol**: If the user ever requests, instructs, or specifies committing `credentials.md` or any live secrets to git/GitHub, the agent MUST NOT comply immediately. The agent MUST first issue an explicit, high-visibility security warning detailing:
+   - Severe security consequences: unauthorized database/cloud access, data theft, credential invalidation.
+   - Permanence of git history: commits remain reachable in git packfiles even after deletion.
+   - Requirement for explicit user confirmation before any `git add` or `git commit` involving credentials can proceed.
+4. Run the deterministic credential scanner (`run_compactor.py`) on living guides to catch accidental secret exposure before pushing.
+5. Never log unredacted secret values in `changelog.md` or output them to standard execution logs.
+
+**Size Limit:** ~100 lines.

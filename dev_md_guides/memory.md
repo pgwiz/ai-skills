@@ -26,6 +26,14 @@ _Durable knowledge — decisions, gotchas, conventions. Not a log._
 - **Consequences**: Zero hardcoded environment paths in documentation; seamless git safety; deterministic onboarding across local, staging, and production environments.
 - **Rejected Alternatives**: Committing actual `directory.md` directly (rejected due to privacy and local machine path leaks); environment variable interpolation in markdown (rejected due to markdown renderer incompatibility).
 
+### ADR-0004: Isolated Credentials Management & Mandatory Agent Warning Protocol
+- **Date**: 2026-09-14
+- **Status**: ACCEPTED
+- **Context**: Project development requires secret credentials (API keys, database passwords, OAuth secrets, JWT signing keys). Accidental leaks of secrets into git repositories result in severe security breaches, compromised cloud environments, and indelible git history contamination.
+- **Decision**: Store active project credentials strictly in `dev_md_guides/credentials.md`, which MUST be ignored by `.gitignore` at all times. Only commit a sanitized template `credentials.md.sample` containing mock/redacted placeholders. Furthermore, enforce an inviolable agent protocol: if any user ever requests or instructs committing credentials or `credentials.md` to git/GitHub, the agent must NEVER do so silently, and MUST first issue an explicit, high-visibility security warning detailing the severe risks of secret exposure and require explicit user confirmation. In addition, `run_compactor.py` executes automated secret leak scans on all git-tracked guides.
+- **Consequences**: Zero accidental credential leakage into git; proactive detection of unredacted keys; strict human-in-the-loop gate before any intentional secret commit.
+- **Rejected Alternatives**: Embedding secrets in `.env` without centralized markdown schema (lacks agent schema awareness); allowing automatic committing of credentials on user prompt without warnings (rejected due to extreme security risk).
+
 ## Gotchas
 - On Windows PowerShell, output encoding for git commands must use UTF-8 with error replacement to prevent character encoding crashes with non-ASCII commit logs.
 
@@ -33,6 +41,8 @@ _Durable knowledge — decisions, gotchas, conventions. Not a log._
 - Every skill in this repository must provide a valid `SKILL.md` compliant with the Agent Skills open standard (agentskills.io).
 - `dev_md_guides/changelog.md` is strictly append-only; never rewrite or delete past entries.
 - Never hardcode machine directories, server hostnames, backend links, or frontend links across markdown docs — always resolve and document via `directory.md`.
+- Zero Credential Exposure: Never commit `dev_md_guides/credentials.md` or live secrets to GitHub. Always verify `.gitignore` ignores `credentials.md` and whitelists `!credentials.md.sample`.
+- Mandatory Warning on Credential Commits: If asked to commit secrets, warn the user explicitly about security risks and require confirmation before proceeding.
 
 ## Dead ends
 - Monolithic memory-bank reads on every prompt turn: abandoned due to severe context window consumption (>5,000 tokens per turn).

@@ -1,5 +1,5 @@
 # Codebase Architecture & Directory Dependency Graph
-_Last regenerated: 2026-09-14 09:57:04 UTC by dev-md-compactor_
+_Last regenerated: 2026-09-14 10:14:26 UTC by dev-md-compactor_
 
 ## Project Manifests & Build Tools
 - *(No standard build manifests detected at root)*
@@ -23,7 +23,7 @@ _Last regenerated: 2026-09-14 09:57:04 UTC by dev-md-compactor_
 - **Discovered Module Dependencies**: `argparse, ast, datetime, os, pathlib, re, subprocess, sys`
 
 ### `dev-md-compactor/templates/`
-- **Files (7)**: `branch.md, changelog.md, directory.md, directory.md.sample, features.md, memory.md, structure.md`
+- **Files (9)**: `branch.md, changelog.md, credentials.md, credentials.md.sample, directory.md, directory.md.sample, features.md, memory.md` (+1 more)
 
 ### `install/`
 - **Files (3)**: `INSTALL.md, install.ps1, install.sh`
@@ -43,7 +43,13 @@ _Last regenerated: 2026-09-14 09:57:04 UTC by dev-md-compactor_
 - All workspace paths, servers, backend links, frontend links, and external endpoints are centralized in this catalog.
 - Invariant: Never hardcode local filesystem paths or network URLs directly across project markdown files.
 
+## Credentials & Secrets Reference
+- Central Secrets Schema: `dev_md_guides/credentials.md` (sample committed as `dev_md_guides/credentials.md.sample`).
+- Real secrets and sensitive tokens are kept strictly local in `credentials.md` and MUST NEVER be committed to GitHub.
+- Invariant: Never commit credentials to GitHub; if the user ever specifies committing credentials, the agent must first explicitly warn the user about critical security risks.
+
 ## Architectural Invariants & Boundary Rules
 - Internal modules should adhere to defined dependency boundaries without cyclic imports.
 - Configuration, secrets, and environment overrides must not be hardcoded in application logic.
 - Zero Hardcoded Endpoints: Do not hardcode machine directories, server IPs, backend links, or frontend links across markdown docs; resolve and reference them via directory.md (only directory.md.sample is committed to version control).
+- Zero Credential Exposure: Never commit credentials.md or real secrets to git/GitHub. Only credentials.md.sample with sanitized placeholders is tracked. If the user explicitly asks to commit credentials, issue a critical security warning and require confirmation before proceeding.

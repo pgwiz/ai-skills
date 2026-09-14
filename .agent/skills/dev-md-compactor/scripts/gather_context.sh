@@ -96,6 +96,11 @@ if [ -d "dev_md_guides" ]; then
   elif [ -f "dev_md_guides/directory.md.sample" ]; then
     echo "--- directory.md.sample (template sample detected) ---"
   fi
+  if [ -f "dev_md_guides/credentials.md" ]; then
+    echo "--- credentials.md (local active credentials detected) ---"
+  elif [ -f "dev_md_guides/credentials.md.sample" ]; then
+    echo "--- credentials.md.sample (template sample detected) ---"
+  fi
 else
   echo "(dev_md_guides/ does not exist yet — will be created)"
 fi
@@ -109,6 +114,28 @@ elif [ -f "dev_md_guides/directory.md.sample" ]; then
   cat "dev_md_guides/directory.md.sample"
 else
   echo "(no directory catalog found in dev_md_guides/)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "CREDENTIALS & SECRETS SCHEMA (dev_md_guides/credentials.md.sample)"
+if [ -f "dev_md_guides/credentials.md" ]; then
+  echo "(local credentials.md detected — keeping live secret values redacted from stdout)"
+fi
+if [ -f "dev_md_guides/credentials.md.sample" ]; then
+  cat "dev_md_guides/credentials.md.sample"
+elif [ -f "dev_md_guides/credentials.md" ]; then
+  echo "(credentials.md exists locally but no credentials.md.sample found)"
+else
+  echo "(no credentials catalog found in dev_md_guides/)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "CREDENTIAL TRACKING & SECURITY CHECK"
+if git ls-files --error-unmatch dev_md_guides/credentials.md >/dev/null 2>&1; then
+  echo "CRITICAL SECURITY WARNING: dev_md_guides/credentials.md is tracked by git!"
+  echo "Immediately run: git rm --cached dev_md_guides/credentials.md"
+else
+  echo "OK: dev_md_guides/credentials.md is not tracked in git worktree."
 fi
 
 hr "DONE"

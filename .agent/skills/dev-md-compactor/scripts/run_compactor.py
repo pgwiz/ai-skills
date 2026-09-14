@@ -5,13 +5,15 @@ Part of the dev-md-compactor agent skill (https://github.com/pgwiz/ai-skills)
 
 Extracts repository ground truth using git and AST parsers to maintain:
   dev_md_guides/
-    ├── branch.md            (overwritten: current branch, HEAD, uncommitted diffs)
-    ├── structure.md         (regenerated: directory topography, imports, manifests)
-    ├── changelog.md         (append-only: timestamped operational & AST audit)
-    ├── features.md          (seeded if missing: feature matrix & SDD progress)
-    ├── memory.md            (seeded if missing: ADRs and immutable invariants)
-    ├── directory.md.sample  (seeded if missing: committed sample service/path catalog)
-    └── directory.md         (seeded if missing: local environment catalog, gitignored)
+    ├── branch.md             (overwritten: current branch, HEAD, uncommitted diffs)
+    ├── structure.md          (regenerated: directory topography, imports, manifests)
+    ├── changelog.md          (append-only: timestamped operational & AST audit)
+    ├── features.md           (seeded if missing: feature matrix & SDD progress)
+    ├── memory.md             (seeded if missing: ADRs and immutable invariants)
+    ├── directory.md.sample   (seeded if missing: committed sample service/path catalog)
+    ├── directory.md          (seeded if missing: local environment catalog, gitignored)
+    ├── credentials.md.sample (seeded if missing: committed sample secrets/keys catalog)
+    └── credentials.md        (seeded if missing: local active credentials, gitignored)
 """
 
 import ast
@@ -59,6 +61,171 @@ MANIFEST_FILES = [
     "build.gradle",
     "CMakeLists.txt",
 ]
+
+# Secret detection patterns for catching accidental leaks in git-tracked guides
+SECRET_PATTERNS = [
+    (r"-----BEGIN (?:[A-Z0-9_\-]+ )?PRIVATE KEY-----", "Private Key block"),
+    (r"\bsk-[a-zA-Z0-9]{20,}\b", "OpenAI / Anthropic API Key (sk-...)"),
+    (r"\bsk-proj-[a-zA-Z0-9_\-]{20,}\b", "OpenAI Project API Key"),
+    (r"\bsk-ant-api\d{2}-[a-zA-Z0-9_\-]{20,}\b", "Anthropic API Key"),
+    (r"\bgh[pousr]_[a-zA-Z0-9]{36,}\b", "GitHub Personal Access / OAuth Token"),
+    (r"\bgithub_pat_[a-zA-Z0-9_]{22,}\b", "GitHub Fine-Grained Personal Access Token"),
+    (r"\bAKIA[0-9A-Z]{16}\b", "AWS Access Key ID"),
+    (r"\bxox[baprs]-[0-9a-zA-Z]{10,48}\b", "Slack API Token"),
+    (r"\b(?:sk|rk)_live_[0-9a-zA-Z]{24,}\b", "Stripe Live Secret Key"),
+    (r"\bAIza[0-9A-Za-z\-_]{30,40}\b", "Google API Key"),
+    (r"\b(?:postgres|postgresql|mysql|mariadb|mongodb|redis):\/\/[^:\s]+:[^@\s]+@[^\s]+", "Database connection URI with embedded credentials"),
+]
+
+GENERIC_SECRET_REGEX = re.compile(
+    r"""(?i)(?:api_key|apikey|secret_key|private_key|auth_token|access_token|password|passwd)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{16,})['"]?"""
+)
+
+PLACEHOLDER_KEYWORDS = (
+    "placeholder",
+    "sample",
+    "redacted",
+    "example",
+    "change_me",
+    "your_",
+    "enc[",
+    "mock_",
+)
+
+TRIVIAL_PLACEHOLDERS = {
+    "xxxx",
+    "xxxxxx",
+    "123456",
+    "12345678",
+    "123456789",
+    "none",
+    "null",
+    "dummy",
+    "fake",
+    "test",
+    "test_key",
+}
+
+
+def is_placeholder(val: str, line: str = "") -> bool:
+    """Checks whether a matched string or its surrounding context is a recognized mock placeholder."""
+    val_clean = val.strip("`'\" ").lower()
+    if val_clean in TRIVIAL_PLACEHOLDERS:
+        return True
+
+    val_lower = val.lower()
+    line_lower = line.lower()
+    for kw in PLACEHOLDER_KEYWORDS:
+        if kw in val_lower or kw in line_lower:
+            return True
+    return False
+
+
+def scan_text_for_secrets(text: str, filename: str = "") -> list[dict[str, str | int]]:
+    """
+    Scans a string for potential hardcoded credentials, API keys, private keys, and tokens.
+    Returns a list of match details (type, line, snippet).
+    Ignores recognized mock and placeholder values.
+    """
+    findings: list[dict[str, str | int]] = []
+    lines = text.splitlines()
+
+    for line_idx, line in enumerate(lines, start=1):
+        context_window = "\n".join(lines[max(0, line_idx - 3):min(len(lines), line_idx + 4)])
+        # 1. Regex pattern checks per line
+        for pattern, desc in SECRET_PATTERNS:
+            matches = re.finditer(pattern, line)
+            for m in matches:
+                matched_str = m.group(0)
+                if not is_placeholder(matched_str, context_window):
+                    masked = matched_str[:6] + "..." + matched_str[-4:] if len(matched_str) > 12 else "[REDACTED]"
+                    findings.append({
+                        "type": desc,
+                        "line": line_idx,
+                        "snippet": f"Line {line_idx}: {masked}",
+                        "file": filename,
+                    })
+
+        # 2. Generic secret assignment check
+        gen_matches = GENERIC_SECRET_REGEX.finditer(line)
+        for gm in gen_matches:
+            secret_val = gm.group(1)
+            if not is_placeholder(secret_val, context_window):
+                masked = secret_val[:4] + "..." + secret_val[-4:] if len(secret_val) > 10 else "[REDACTED]"
+                findings.append({
+                    "type": "Potential unredacted credential / secret assignment",
+                    "line": line_idx,
+                    "snippet": f"Line {line_idx}: {masked}",
+                    "file": filename,
+                })
+
+    # Multi-line check for full private key blocks if not already caught
+    if "-----BEGIN" in text and "PRIVATE KEY-----" in text and not any(f["type"] == "Private Key block" for f in findings):
+        if not is_placeholder("private_key", text):
+            findings.append({
+                "type": "Private Key block",
+                "line": 1,
+                "snippet": "Multi-line Private Key block detected",
+                "file": filename,
+            })
+
+    return findings
+
+
+def scan_file_for_secrets(file_path: Path) -> list[dict[str, str | int]]:
+    """Scans a file for potential secret leaks."""
+    if not file_path.exists() or not file_path.is_file():
+        return []
+    try:
+        content = file_path.read_text(encoding="utf-8", errors="replace")
+        return scan_text_for_secrets(content, filename=file_path.name)
+    except Exception:
+        return []
+
+
+def scan_guides_for_secrets(guides_dir: Path, include_gitignored: bool = False) -> dict[str, list[dict[str, str | int]]]:
+    """
+    Scans living guides in dev_md_guides/ for accidental secret leaks.
+    By default skips gitignored files (directory.md and credentials.md).
+    """
+    results: dict[str, list[dict[str, str | int]]] = {}
+    if not guides_dir.exists() or not guides_dir.is_dir():
+        return results
+
+    ignored_filenames = set() if include_gitignored else {"directory.md", "credentials.md"}
+
+    for item in guides_dir.glob("*.md*"):
+        if item.name in ignored_filenames:
+            continue
+        leaks = scan_file_for_secrets(item)
+        if leaks:
+            results[item.name] = leaks
+
+    return results
+
+
+def generate_credential_commit_warning(target: str = "dev_md_guides/credentials.md") -> str:
+    """
+    Generates an explicit critical security warning required before ever staging or committing credentials.
+    """
+    return (
+        "====================================================================\n"
+        "CRITICAL SECURITY WARNING: ATTEMPT TO COMMIT SENSITIVE CREDENTIALS\n"
+        "====================================================================\n"
+        f"Target: '{target}'\n\n"
+        "DANGER & SECURITY RISKS:\n"
+        "1. Exposing live credentials on GitHub or remote repositories allows unauthorized\n"
+        "   access to databases, cloud infrastructure, AI models, and private systems.\n"
+        "2. Git history is permanent. Even if deleted in a later commit, secrets remain in\n"
+        "   the commit tree and git packfiles until scrubbed with filter-repo/BFG.\n"
+        "3. Automated GitHub secret scanners and malicious scrapers index public commits within seconds.\n\n"
+        "REQUIRED AGENT PROTOCOL:\n"
+        "- Real credentials belong ONLY in 'dev_md_guides/credentials.md' (MUST be gitignored).\n"
+        "- Only 'dev_md_guides/credentials.md.sample' with mock placeholders is committed.\n"
+        "- The agent MUST NEVER commit credentials without first issuing this warning and\n"
+        "  receiving explicit user confirmation acknowledging the risk.\n"
+        "============================================================================="
+    )
 
 
 def run_cmd(cmd: list[str], cwd: Path | None = None) -> str:
@@ -341,10 +508,16 @@ def write_structure_md(
         "- All workspace paths, servers, backend links, frontend links, and external endpoints are centralized in this catalog.",
         "- Invariant: Never hardcode local filesystem paths or network URLs directly across project markdown files.",
         "",
+        "## Credentials & Secrets Reference",
+        "- Central Secrets Schema: `dev_md_guides/credentials.md` (sample committed as `dev_md_guides/credentials.md.sample`).",
+        "- Real secrets and sensitive tokens are kept strictly local in `credentials.md` and MUST NEVER be committed to GitHub.",
+        "- Invariant: Never commit credentials to GitHub; if the user ever specifies committing credentials, the agent must first explicitly warn the user about critical security risks.",
+        "",
         "## Architectural Invariants & Boundary Rules",
         "- Internal modules should adhere to defined dependency boundaries without cyclic imports.",
         "- Configuration, secrets, and environment overrides must not be hardcoded in application logic.",
         "- Zero Hardcoded Endpoints: Do not hardcode machine directories, server IPs, backend links, or frontend links across markdown docs; resolve and reference them via directory.md (only directory.md.sample is committed to version control).",
+        "- Zero Credential Exposure: Never commit credentials.md or real secrets to git/GitHub. Only credentials.md.sample with sanitized placeholders is tracked. If the user explicitly asks to commit credentials, issue a critical security warning and require confirmation before proceeding.",
         "",
     ])
 
@@ -425,6 +598,51 @@ def ensure_directory_gitignored(root_dir: Path, guides_dir: Path) -> None:
 
         if additions:
             block = "# dev_md_guides local environment catalog (deploy sample only)\n" + "\n".join(additions) + "\n"
+            if content.strip():
+                new_content = content.rstrip() + "\n\n" + block
+            else:
+                new_content = block
+            gitignore_path.write_text(new_content, encoding="utf-8")
+
+        # Also ensure credentials.md is gitignored
+        ensure_credentials_gitignored(root_dir, guides_dir)
+    except Exception:
+        pass
+
+
+def ensure_credentials_gitignored(root_dir: Path, guides_dir: Path) -> None:
+    """Ensures local credentials.md is added to .gitignore so private secrets aren't committed."""
+    gitignore_path = root_dir / ".gitignore"
+
+    try:
+        try:
+            rel_guides = guides_dir.relative_to(root_dir).as_posix()
+        except ValueError:
+            rel_guides = guides_dir.name
+
+        target_ignore = f"{rel_guides}/credentials.md"
+        target_allow = f"!{rel_guides}/credentials.md.sample"
+
+        content = ""
+        lines = []
+        if gitignore_path.exists():
+            content = gitignore_path.read_text(encoding="utf-8", errors="replace")
+            lines = [line.strip() for line in content.splitlines()]
+        elif not (root_dir / ".git").exists() and not any(root_dir.glob(".git*")):
+            # Not in a git repo and no existing .gitignore, skip creating
+            return
+
+        needs_ignore = target_ignore not in lines and "credentials.md" not in lines and f"/{target_ignore}" not in lines
+        needs_allow = target_allow not in lines and f"!/{target_allow[1:]}" not in lines
+
+        additions = []
+        if needs_ignore:
+            additions.append(target_ignore)
+        if needs_allow:
+            additions.append(target_allow)
+
+        if additions:
+            block = "# dev_md_guides local credentials (deploy sample only)\n" + "\n".join(additions) + "\n"
             if content.strip():
                 new_content = content.rstrip() + "\n\n" + block
             else:
@@ -518,8 +736,101 @@ def load_directory_catalog(guides_dir: Path) -> dict[str, str]:
     return flat
 
 
+def load_credentials_catalog_grouped(guides_dir: Path) -> dict[str, dict[str, str]]:
+    """
+    Parses key-value mappings from credentials.md (or credentials.md.sample fallback)
+    grouped by category header.
+    """
+    target = guides_dir / "credentials.md"
+    if not target.exists():
+        target = guides_dir / "credentials.md.sample"
+    if not target.exists():
+        return {}
+
+    grouped: dict[str, dict[str, str]] = {}
+    current_category = "General"
+    in_code_block = False
+
+    try:
+        content = target.read_text(encoding="utf-8-sig", errors="replace")
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+
+            if line.startswith("```"):
+                in_code_block = not in_code_block
+                continue
+            if in_code_block:
+                continue
+
+            header_match = re.match(r"^#{2,4}\s+(?:(?:\d+[\.\)]\s*)?)(.*)$", line)
+            if header_match:
+                cat_title = header_match.group(1).strip()
+                current_category = cat_title
+                grouped.setdefault(current_category, {})
+                continue
+
+            if line.startswith("|") and line.endswith("|"):
+                cells = [c.strip() for c in line.strip("|").split("|")]
+                if len(cells) >= 2:
+                    if all(set(c) <= {"-", ":", " "} for c in cells):
+                        continue
+                    col0_lower = cells[0].lower()
+                    col1_lower = cells[1].lower() if len(cells) > 1 else ""
+                    col2_lower = cells[2].lower() if len(cells) > 2 else ""
+
+                    if col0_lower in ("key", "name", "service", "provider", "category", "item", "variable", "token", "credential", "service name") and \
+                       (col1_lower in ("value", "url", "path", "endpoint", "link", "key", "name", "token", "secret", "key name") or \
+                        col2_lower in ("value", "token", "secret", "link", "endpoint", "notes", "description")):
+                        continue
+
+                    if len(cells) >= 3 and any(w in col1_lower for w in ("key", "secret", "name", "token")) and col0_lower not in ("key", "name"):
+                        key = cells[1].strip("*_`")
+                        val = cells[2]
+                    elif len(cells) >= 3 and any(w in col0_lower for w in ("key", "secret", "name", "token", "password")):
+                        key = cells[0].strip("*_`")
+                        val = cells[1]
+                    elif len(cells) >= 3 and col2_lower and not any(w in col2_lower for w in ("description", "note", "comment")):
+                        key = cells[1].strip("*_`")
+                        val = cells[2]
+                    else:
+                        key = cells[0].strip("*_`")
+                        val = cells[1]
+
+                    if val.startswith("`") and val.endswith("`") and val.count("`") == 2:
+                        val = val[1:-1].strip()
+                    if key:
+                        grouped.setdefault(current_category, {})[key] = val
+                continue
+
+            bullet_match = re.match(r"^(?:[-*+]|\d+\.)\s+(?:\*\*|__)?`?([^`*_\r\n:]+?)`?(?:\*\*|__)?:\s*(.*)$", line)
+            if bullet_match:
+                key = bullet_match.group(1).strip()
+                val = bullet_match.group(2).strip()
+                if val.startswith("`") and val.endswith("`") and val.count("`") == 2:
+                    val = val[1:-1].strip()
+                if key:
+                    grouped.setdefault(current_category, {})[key] = val
+    except Exception:
+        pass
+
+    return grouped
+
+
+def load_credentials_catalog(guides_dir: Path) -> dict[str, str]:
+    """
+    Parses flat key-value mappings from credentials.md (or credentials.md.sample fallback).
+    """
+    grouped = load_credentials_catalog_grouped(guides_dir)
+    flat: dict[str, str] = {}
+    for cat_entries in grouped.values():
+        flat.update(cat_entries)
+    return flat
+
+
 def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir: Path | None = None) -> None:
-    """Seeds features.md, memory.md, directory.md.sample, and directory.md from templates if they do not exist."""
+    """Seeds features.md, memory.md, directory.md.sample, directory.md, credentials.md.sample, and credentials.md from templates if they do not exist."""
     features_path = guides_dir / "features.md"
     if not features_path.exists():
         template_features = templates_dir / "features.md" if templates_dir else None
@@ -609,8 +920,57 @@ def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir
         else:
             directory_path.write_text(sample_path.read_text(encoding="utf-8"), encoding="utf-8")
 
+    # Seed credentials.md.sample (committed template with sanitized placeholders)
+    cred_sample_path = guides_dir / "credentials.md.sample"
+    if not cred_sample_path.exists():
+        template_cred_sample = templates_dir / "credentials.md.sample" if templates_dir else None
+        if template_cred_sample and template_cred_sample.exists():
+            cred_sample_content = template_cred_sample.read_text(encoding="utf-8")
+        else:
+            cred_sample_content = (
+                "# Project Credentials & Secrets Reference (Sample)\n"
+                "_Template and sanitized schema for active application secrets, API keys, database credentials, and service tokens._\n"
+                "_All real values must remain strictly local in `credentials.md` (gitignored). NEVER commit unredacted secrets._\n\n"
+                "> [!CAUTION]\n"
+                "> **CRITICAL SECURITY RULE: NEVER COMMIT REAL CREDENTIALS TO GITHUB**\n"
+                "> - Active secrets belong ONLY in `credentials.md` (which MUST be gitignored).\n"
+                "> - Only `credentials.md.sample` with mock/redacted placeholders is committed to version control.\n"
+                "> - **AGENT PROTOCOL**: If the user ever requests or instructs committing `credentials.md` or any unredacted secrets to git/GitHub, the agent MUST REFUSE to do so silently, and MUST FIRST explicitly issue a high-visibility security warning detailing the severe risks of secret exposure (credential compromise, unauthorized infrastructure access, data breach, and required revocation) and require explicit user confirmation.\n\n"
+                "## 1. Application & Database Secrets\n"
+                "- **Database Password**: `ENC[YOUR_DB_PASSWORD_HERE]`\n"
+                "- **Database Connection String**: `postgresql://postgres:REDACTED@localhost:5432/app_db`\n"
+                "- **Session Secret Key**: `ENC[HEX_OR_BASE64_SESSION_SECRET_32_BYTES]`\n"
+                "- **Encryption Master Key**: `ENC[AES256_KEY_BASE64_PLACEHOLDER]`\n\n"
+                "## 2. API Keys & External Services\n"
+                "- **Anthropic API Key**: `sk-ant-api03-SAMPLE_PLACEHOLDER_KEY`\n"
+                "- **OpenAI API Key**: `sk-proj-SAMPLE_PLACEHOLDER_KEY`\n"
+                "- **Google Gemini API Key**: `AIzaSy_SAMPLE_PLACEHOLDER_KEY`\n"
+                "- **Stripe Secret Key**: `sk_test_SAMPLE_PLACEHOLDER_KEY`\n"
+                "- **AWS Secret Access Key**: `ENC[AWS_SECRET_ACCESS_KEY_PLACEHOLDER]`\n\n"
+                "## 3. Authentication, SSO & OAuth\n"
+                "- **OAuth Client ID**: `sample-client-id.apps.googleusercontent.com`\n"
+                "- **OAuth Client Secret**: `ENC[OAUTH_CLIENT_SECRET_PLACEHOLDER]`\n"
+                "- **JWT Private Signing Key**: `-----BEGIN PRIVATE KEY-----\\n[MOCK_PKCS8_KEY_CONTENT]\\n-----END PRIVATE KEY-----`\n"
+                "- **Webhook Signing Secret**: `whsec_SAMPLE_WEBHOOK_SECRET`\n\n"
+                "## 4. Deployment & Infrastructure Tokens\n"
+                "- **Docker Registry Token**: `ENC[CONTAINER_REGISTRY_TOKEN]`\n"
+                "- **Deploy SSH Private Key**: `~/.ssh/id_ed25519 (passphrase: REDACTED)`\n"
+                "- **Cloud Service Account Key File**: `./secrets/gcp-sa-key.json (gitignored)`\n"
+            )
+        cred_sample_path.write_text(cred_sample_content, encoding="utf-8")
+
+    # Seed credentials.md (local active secrets, gitignored)
+    credentials_path = guides_dir / "credentials.md"
+    if not credentials_path.exists():
+        template_cred = templates_dir / "credentials.md" if templates_dir else None
+        if template_cred and template_cred.exists():
+            credentials_path.write_text(template_cred.read_text(encoding="utf-8"), encoding="utf-8")
+        else:
+            credentials_path.write_text(cred_sample_path.read_text(encoding="utf-8"), encoding="utf-8")
+
     if root_dir:
         ensure_directory_gitignored(root_dir, guides_dir)
+        ensure_credentials_gitignored(root_dir, guides_dir)
 
 
 def print_report(
@@ -620,6 +980,8 @@ def print_report(
     manifests: list[str],
     catalog: dict[str, str] | None = None,
     grouped_catalog: dict[str, dict[str, str]] | None = None,
+    cred_catalog: dict[str, str] | None = None,
+    leaks: dict[str, list[dict[str, str | int]]] | None = None,
 ) -> None:
     """Prints plain-text context report for agent consumption."""
     print("=== PROJECT GROUND TRUTH REPORT ===")
@@ -638,6 +1000,10 @@ def print_report(
         else:
             for k, v in catalog.items():
                 print(f"    - {k}: {v}")
+    if cred_catalog:
+        print(f"Credentials:   {len(cred_catalog)} secret entries cataloged (values redacted)")
+    if leaks:
+        print(f"[SECURITY ALERT] {len(leaks)} files with potential secret leaks detected in tracked guides!")
     print(f"Changed Files: {len(modified_nodes)} files with code changes")
     if modified_nodes:
         for node in modified_nodes:
@@ -670,9 +1036,22 @@ def main():
     dir_summary, imports_map, manifests = build_structure_graph(root_dir)
     catalog = load_directory_catalog(guides_dir)
     grouped_catalog = load_directory_catalog_grouped(guides_dir)
+    cred_catalog = load_credentials_catalog(guides_dir)
+
+    # Credential scanner pass on tracked guides
+    leaks = scan_guides_for_secrets(guides_dir)
 
     if args.report_only:
-        print_report(git_info, modified_nodes, dir_summary, manifests, catalog, grouped_catalog)
+        print_report(
+            git_info,
+            modified_nodes,
+            dir_summary,
+            manifests,
+            catalog,
+            grouped_catalog,
+            cred_catalog=cred_catalog,
+            leaks=leaks,
+        )
         return
 
     # Write guides
@@ -682,7 +1061,30 @@ def main():
     write_structure_md(guides_dir, dir_summary, imports_map, manifests, catalog=catalog)
     append_changelog_md(guides_dir, modified_nodes, git_info)
 
-    print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (branch.md, structure.md, changelog.md, features.md, memory.md, directory.md.sample)")
+    # Post-generation secret scan
+    post_leaks = scan_guides_for_secrets(guides_dir)
+    if post_leaks:
+        print("[SECURITY WARNING] Potential credential leaks detected in git-tracked guides:")
+        for fname, leak_list in post_leaks.items():
+            print(f"  - {fname}:")
+            for item in leak_list:
+                print(f"    * [{item['type']}] {item['snippet']}")
+        print("  Resolve these unredacted secrets before pushing to version control!")
+
+    # Check git uncommitted for accidental credentials.md staging
+    try:
+        guides_cred_rel = (guides_dir / "credentials.md").relative_to(root_dir).as_posix()
+    except ValueError:
+        guides_cred_rel = f"{guides_dir.name}/credentials.md"
+
+    for item in git_info.get("uncommitted", []):
+        parts = item.split(maxsplit=1)
+        file_in_item = (parts[1] if len(parts) > 1 else item).replace("\\", "/").strip()
+        if (file_in_item == guides_cred_rel or (file_in_item.endswith("/credentials.md") and "templates" not in file_in_item)) and not file_in_item.endswith(".sample"):
+            print("\n" + generate_credential_commit_warning(guides_cred_rel) + "\n")
+            break
+
+    print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (branch.md, structure.md, changelog.md, features.md, memory.md, directory.md.sample, credentials.md.sample)")
 
 
 if __name__ == "__main__":
