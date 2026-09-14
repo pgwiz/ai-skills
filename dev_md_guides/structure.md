@@ -1,5 +1,5 @@
 # Codebase Architecture & Directory Dependency Graph
-_Last regenerated: 2026-09-14 10:14:26 UTC by dev-md-compactor_
+_Last regenerated: 2026-09-14 10:27:33 UTC by dev-md-compactor_
 
 ## Project Manifests & Build Tools
 - *(No standard build manifests detected at root)*
@@ -36,7 +36,7 @@ _Last regenerated: 2026-09-14 10:14:26 UTC by dev-md-compactor_
 
 ### `tests/`
 - **Files (1)**: `test_compactor.py`
-- **Discovered Module Dependencies**: `pathlib, run_compactor, shutil, sys, tempfile, unittest`
+- **Discovered Module Dependencies**: `pathlib, run_compactor, shutil, subprocess, sys, tempfile, unittest`
 
 ## Environment & Directory Catalog Reference
 - Central Catalog: `dev_md_guides/directory.md` (sample committed as `dev_md_guides/directory.md.sample`).

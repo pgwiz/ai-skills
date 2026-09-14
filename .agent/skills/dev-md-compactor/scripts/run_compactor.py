@@ -64,7 +64,6 @@ MANIFEST_FILES = [
 
 # Secret detection patterns for catching accidental leaks in git-tracked guides
 SECRET_PATTERNS = [
-    (r"-----BEGIN (?:[A-Z0-9_\-]+ )?PRIVATE KEY-----", "Private Key block"),
     (r"\bsk-[a-zA-Z0-9]{20,}\b", "OpenAI / Anthropic API Key (sk-...)"),
     (r"\bsk-proj-[a-zA-Z0-9_\-]{20,}\b", "OpenAI Project API Key"),
     (r"\bsk-ant-api\d{2}-[a-zA-Z0-9_\-]{20,}\b", "Anthropic API Key"),
@@ -74,11 +73,16 @@ SECRET_PATTERNS = [
     (r"\bxox[baprs]-[0-9a-zA-Z]{10,48}\b", "Slack API Token"),
     (r"\b(?:sk|rk)_live_[0-9a-zA-Z]{24,}\b", "Stripe Live Secret Key"),
     (r"\bAIza[0-9A-Za-z\-_]{30,40}\b", "Google API Key"),
-    (r"\b(?:postgres|postgresql|mysql|mariadb|mongodb|redis):\/\/[^:\s]+:[^@\s]+@[^\s]+", "Database connection URI with embedded credentials"),
+    (r"\b(?:postgres|postgresql|postgresql\+[a-z0-9_]+|mysql|mysql\+[a-z0-9_]+|mariadb|mongodb|mongodb\+srv|redis|rediss|amqp|amqps):\/\/[^:\s]+:[^@\s]+@[^\s]+", "Database connection URI with embedded credentials"),
 ]
 
+PRIVATE_KEY_BLOCK_REGEX = re.compile(
+    r"-----BEGIN (?:[A-Z0-9_\-]+ )*PRIVATE KEY(?: BLOCK)?-----(?:[\s\S]*?-----END (?:[A-Z0-9_\-]+ )*PRIVATE KEY(?: BLOCK)?-----)?",
+    re.MULTILINE,
+)
+
 GENERIC_SECRET_REGEX = re.compile(
-    r"""(?i)(?:api_key|apikey|secret_key|private_key|auth_token|access_token|password|passwd)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{16,})['"]?"""
+    r"""(?i)(?:api[_-]?key|apikey|secret[_-]?key|private[_-]?key|auth[_-]?token|access[_-]?token|client[_-]?secret|password|passwd)\s*[:=]\s*['"]?([a-zA-Z0-9_\-]{12,})['"]?"""
 )
 
 PLACEHOLDER_KEYWORDS = (
@@ -87,9 +91,15 @@ PLACEHOLDER_KEYWORDS = (
     "redacted",
     "example",
     "change_me",
+    "changeme",
     "your_",
+    "your-",
     "enc[",
-    "mock_",
+    "mock",
+    "dummy",
+    "fake",
+    "test_key",
+    "test-key",
 )
 
 TRIVIAL_PLACEHOLDERS = {
@@ -108,16 +118,25 @@ TRIVIAL_PLACEHOLDERS = {
 
 
 def is_placeholder(val: str, line: str = "") -> bool:
-    """Checks whether a matched string or its surrounding context is a recognized mock placeholder."""
-    val_clean = val.strip("`'\" ").lower()
+    """Checks whether a matched string is a recognized mock placeholder."""
+    val_clean = val.strip("`'\" \t\r\n").lower()
+    if not val_clean:
+        return True
     if val_clean in TRIVIAL_PLACEHOLDERS:
         return True
-
-    val_lower = val.lower()
-    line_lower = line.lower()
     for kw in PLACEHOLDER_KEYWORDS:
-        if kw in val_lower or kw in line_lower:
+        if kw in val_clean:
             return True
+    # If the token is enclosed in template brackets/placeholders in line (e.g. <val>, [val], ${val})
+    if line:
+        val_raw = val.strip("`'\" ")
+        if f"<{val_raw}>" in line or f"[{val_raw}]" in line or f"${{{val_raw}}}" in line:
+            return True
+        bracket_pattern = re.search(r"[<\[][^>\]]*" + re.escape(val_raw) + r"[^>\]]*[>\]]", line)
+        if bracket_pattern:
+            bracket_content = bracket_pattern.group(0).lower()
+            if any(k in bracket_content for k in ("placeholder", "sample", "example", "here", "your", "insert", "replace")):
+                return True
     return False
 
 
@@ -131,13 +150,12 @@ def scan_text_for_secrets(text: str, filename: str = "") -> list[dict[str, str |
     lines = text.splitlines()
 
     for line_idx, line in enumerate(lines, start=1):
-        context_window = "\n".join(lines[max(0, line_idx - 3):min(len(lines), line_idx + 4)])
         # 1. Regex pattern checks per line
         for pattern, desc in SECRET_PATTERNS:
             matches = re.finditer(pattern, line)
             for m in matches:
                 matched_str = m.group(0)
-                if not is_placeholder(matched_str, context_window):
+                if not is_placeholder(matched_str, line):
                     masked = matched_str[:6] + "..." + matched_str[-4:] if len(matched_str) > 12 else "[REDACTED]"
                     findings.append({
                         "type": desc,
@@ -150,7 +168,7 @@ def scan_text_for_secrets(text: str, filename: str = "") -> list[dict[str, str |
         gen_matches = GENERIC_SECRET_REGEX.finditer(line)
         for gm in gen_matches:
             secret_val = gm.group(1)
-            if not is_placeholder(secret_val, context_window):
+            if not is_placeholder(secret_val, line):
                 masked = secret_val[:4] + "..." + secret_val[-4:] if len(secret_val) > 10 else "[REDACTED]"
                 findings.append({
                     "type": "Potential unredacted credential / secret assignment",
@@ -159,13 +177,15 @@ def scan_text_for_secrets(text: str, filename: str = "") -> list[dict[str, str |
                     "file": filename,
                 })
 
-    # Multi-line check for full private key blocks if not already caught
-    if "-----BEGIN" in text and "PRIVATE KEY-----" in text and not any(f["type"] == "Private Key block" for f in findings):
-        if not is_placeholder("private_key", text):
+    # Private Key block check (handles full multi-line block and escaped inline representation)
+    for pkm in PRIVATE_KEY_BLOCK_REGEX.finditer(text):
+        block = pkm.group(0)
+        if not is_placeholder(block):
+            line_idx = text[:pkm.start()].count("\n") + 1
             findings.append({
                 "type": "Private Key block",
-                "line": 1,
-                "snippet": "Multi-line Private Key block detected",
+                "line": line_idx,
+                "snippet": f"Line {line_idx}: Private Key block detected",
                 "file": filename,
             })
 
@@ -183,16 +203,87 @@ def scan_file_for_secrets(file_path: Path) -> list[dict[str, str | int]]:
         return []
 
 
-def scan_guides_for_secrets(guides_dir: Path, include_gitignored: bool = False) -> dict[str, list[dict[str, str | int]]]:
+def is_credentials_file_tracked(root_dir: Path, guides_dir: Path) -> bool:
+    """Checks whether dev_md_guides/credentials.md is tracked in Git (index or committed tree)."""
+    try:
+        try:
+            rel_cred = (guides_dir / "credentials.md").relative_to(root_dir).as_posix()
+        except ValueError:
+            rel_cred = f"{guides_dir.name}/credentials.md"
+
+        res = run_cmd(["git", "ls-files", rel_cred], cwd=root_dir)
+        return bool(res and rel_cred in res)
+    except Exception:
+        return False
+
+
+def check_credentials_security(root_dir: Path, guides_dir: Path) -> dict:
+    """
+    Performs comprehensive security inspection for credentials.md:
+    1. Checks if credentials.md is tracked in git index or committed tree.
+    2. Checks if credentials.md is staged or unignored in working tree.
+    3. Returns alert details and recommended remediation.
+    """
+    try:
+        try:
+            rel_cred = (guides_dir / "credentials.md").relative_to(root_dir).as_posix()
+        except ValueError:
+            rel_cred = f"{guides_dir.name}/credentials.md"
+    except Exception:
+        rel_cred = "dev_md_guides/credentials.md"
+
+    issues: list[str] = []
+    is_tracked = is_credentials_file_tracked(root_dir, guides_dir)
+    if is_tracked:
+        issues.append(f"CRITICAL: '{rel_cred}' is tracked in git repository!")
+
+    # Check git status for staged or uncommitted exposure
+    status_raw = run_cmd(["git", "status", "--porcelain"], cwd=root_dir)
+    is_staged = False
+    is_untracked_unignored = False
+    for line in status_raw.splitlines():
+        if len(line) < 3:
+            continue
+        code = line[:2]
+        path_part = line[2:].strip().replace("\\", "/")
+        # Handle rename format 'old -> new'
+        target_path = path_part.split("->")[-1].strip().strip('"\'')
+        if target_path == rel_cred or (target_path.endswith("/credentials.md") and "templates" not in target_path and not target_path.endswith(".sample")):
+            if code[0] in ("M", "A", "R", "C") or (code[0] != " " and code[0] != "?"):
+                is_staged = True
+                issues.append(f"CRITICAL: '{rel_cred}' is staged for commit (status: {code.strip()})!")
+            elif code == "??":
+                is_untracked_unignored = True
+                issues.append(f"WARNING: '{rel_cred}' is not ignored by .gitignore (status: ??)!")
+
+    return {
+        "is_tracked": is_tracked,
+        "is_staged": is_staged,
+        "is_untracked_unignored": is_untracked_unignored,
+        "issues": issues,
+        "target": rel_cred,
+        "warning": generate_credential_commit_warning(rel_cred) if (is_tracked or is_staged) else "",
+    }
+
+
+def scan_guides_for_secrets(
+    guides_dir: Path,
+    root_dir: Path | None = None,
+    include_gitignored: bool = False,
+) -> dict[str, list[dict[str, str | int]]]:
     """
     Scans living guides in dev_md_guides/ for accidental secret leaks.
-    By default skips gitignored files (directory.md and credentials.md).
+    By default skips gitignored files (directory.md and credentials.md),
+    UNLESS credentials.md is accidentally tracked in Git.
     """
     results: dict[str, list[dict[str, str | int]]] = {}
     if not guides_dir.exists() or not guides_dir.is_dir():
         return results
 
     ignored_filenames = set() if include_gitignored else {"directory.md", "credentials.md"}
+    # If root_dir is provided and credentials.md is tracked in Git, do not ignore it!
+    if root_dir and not include_gitignored and is_credentials_file_tracked(root_dir, guides_dir):
+        ignored_filenames.discard("credentials.md")
 
     for item in guides_dir.glob("*.md*"):
         if item.name in ignored_filenames:
@@ -278,7 +369,7 @@ def get_git_info(root_dir: Path) -> dict:
 
     # Uncommitted working tree state
     status_raw = run_cmd(["git", "status", "--porcelain"], cwd=root_dir)
-    uncommitted = [line.strip() for line in status_raw.splitlines() if line.strip()]
+    uncommitted = [line.rstrip() for line in status_raw.splitlines() if line.strip()]
 
     # Recent commits (last 10)
     recent_commits = []
@@ -575,8 +666,12 @@ def ensure_directory_gitignored(root_dir: Path, guides_dir: Path) -> None:
         except ValueError:
             rel_guides = guides_dir.name
 
-        target_ignore = f"{rel_guides}/directory.md"
-        target_allow = f"!{rel_guides}/directory.md.sample"
+        if rel_guides == ".":
+            target_ignore = "directory.md"
+            target_allow = "!directory.md.sample"
+        else:
+            target_ignore = f"{rel_guides}/directory.md"
+            target_allow = f"!{rel_guides}/directory.md.sample"
 
         content = ""
         lines = []
@@ -620,8 +715,12 @@ def ensure_credentials_gitignored(root_dir: Path, guides_dir: Path) -> None:
         except ValueError:
             rel_guides = guides_dir.name
 
-        target_ignore = f"{rel_guides}/credentials.md"
-        target_allow = f"!{rel_guides}/credentials.md.sample"
+        if rel_guides == ".":
+            target_ignore = "credentials.md"
+            target_allow = "!credentials.md.sample"
+        else:
+            target_ignore = f"{rel_guides}/credentials.md"
+            target_allow = f"!{rel_guides}/credentials.md.sample"
 
         content = ""
         lines = []
@@ -1039,7 +1138,7 @@ def main():
     cred_catalog = load_credentials_catalog(guides_dir)
 
     # Credential scanner pass on tracked guides
-    leaks = scan_guides_for_secrets(guides_dir)
+    leaks = scan_guides_for_secrets(guides_dir, root_dir=root_dir)
 
     if args.report_only:
         print_report(
@@ -1062,7 +1161,7 @@ def main():
     append_changelog_md(guides_dir, modified_nodes, git_info)
 
     # Post-generation secret scan
-    post_leaks = scan_guides_for_secrets(guides_dir)
+    post_leaks = scan_guides_for_secrets(guides_dir, root_dir=root_dir)
     if post_leaks:
         print("[SECURITY WARNING] Potential credential leaks detected in git-tracked guides:")
         for fname, leak_list in post_leaks.items():
@@ -1071,18 +1170,13 @@ def main():
                 print(f"    * [{item['type']}] {item['snippet']}")
         print("  Resolve these unredacted secrets before pushing to version control!")
 
-    # Check git uncommitted for accidental credentials.md staging
-    try:
-        guides_cred_rel = (guides_dir / "credentials.md").relative_to(root_dir).as_posix()
-    except ValueError:
-        guides_cred_rel = f"{guides_dir.name}/credentials.md"
-
-    for item in git_info.get("uncommitted", []):
-        parts = item.split(maxsplit=1)
-        file_in_item = (parts[1] if len(parts) > 1 else item).replace("\\", "/").strip()
-        if (file_in_item == guides_cred_rel or (file_in_item.endswith("/credentials.md") and "templates" not in file_in_item)) and not file_in_item.endswith(".sample"):
-            print("\n" + generate_credential_commit_warning(guides_cred_rel) + "\n")
-            break
+    # Check credentials exposure and tracking in Git
+    cred_sec = check_credentials_security(root_dir, guides_dir)
+    if cred_sec.get("warning"):
+        print("\n" + cred_sec["warning"] + "\n")
+    if cred_sec.get("issues"):
+        for issue in cred_sec["issues"]:
+            print(f"[SECURITY ALERT] {issue}")
 
     print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (branch.md, structure.md, changelog.md, features.md, memory.md, directory.md.sample, credentials.md.sample)")
 

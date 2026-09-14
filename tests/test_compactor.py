@@ -3,6 +3,7 @@ import tempfile
 from pathlib import Path
 import sys
 import shutil
+import subprocess
 
 # Add scripts directory to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "dev-md-compactor" / "scripts"))
@@ -351,6 +352,133 @@ class TestCompactorEngine(unittest.TestCase):
             cred_file.write_bytes(content.encode("utf-8-sig"))
             parsed = run_compactor.load_credentials_catalog(guides_dir)
             self.assertEqual(parsed.get("API Key"), "my-secret-value")
+
+    def test_secret_scanner_false_negative_resistance_near_example_words(self):
+        """
+        Ensures that real live secrets are NEVER ignored merely because words like
+        'example', 'sample', or 'redacted' appear in surrounding headers or sentences.
+        """
+        cases = [
+            (
+                "## Example Configuration\nAWS Key: " + "A" + "KIA1234567890ABCDEF\n",
+                "AWS Access Key ID",
+            ),
+            (
+                "Sample request token: " + "g" + "hp_1234567890abcdefghijklmnopqrstuvwxyz",
+                "GitHub Personal Access / OAuth Token",
+            ),
+            (
+                "# Sample Architecture\nProduction OpenAI: " + "s" + "k-1234567890abcdef1234567890abcdef",
+                "OpenAI / Anthropic API Key (sk-...)",
+            ),
+            (
+                "Example database connection:\n" + "postgre" + "sql://appuser:supersecretpass123@db.prod.internal:5432/myapp",
+                "Database connection URI with embedded credentials",
+            ),
+            (
+                "## Examples\napi_key = 'abcdef1234567890abcdef'",
+                "Potential unredacted credential / secret assignment",
+            ),
+        ]
+
+        for text, expected_type in cases:
+            findings = run_compactor.scan_text_for_secrets(text)
+            self.assertGreater(
+                len(findings), 0,
+                f"Expected scanner to catch secret near example/sample words: '{text}'"
+            )
+            self.assertTrue(
+                any(f["type"] == expected_type for f in findings),
+                f"Expected finding type '{expected_type}' in {findings}"
+            )
+
+    def test_extended_database_uris_and_private_keys(self):
+        """Tests that modern sub-protocol database connection URIs and PGP private keys are caught."""
+        extended_secrets = [
+            ("mongo" + "db+srv://admin:pass123456@cluster0.mongodb.net/prod", "Database connection URI"),
+            ("postgre" + "sql+psycopg2://scott:tiger12345@localhost/mydatabase", "Database connection URI"),
+            ("my" + "sql+pymysql://root:mysecretpass@127.0.0.1:3306/db", "Database connection URI"),
+            ("redis" + "s://default:supersecretkey@myredis.cache.amazonaws.com:6380", "Database connection URI"),
+            ("am" + "qp://guest:secretbrokerpass@localhost:5672//", "Database connection URI"),
+            ("-----BEGIN PGP PRIVATE KEY BLOCK-----\n[KEY_DATA]\n-----END PGP PRIVATE KEY BLOCK-----", "Private Key block"),
+        ]
+
+        for secret_str, expected_substr in extended_secrets:
+            findings = run_compactor.scan_text_for_secrets(secret_str)
+            self.assertGreater(
+                len(findings), 0,
+                f"Expected scanner to catch extended secret pattern: '{secret_str}'"
+            )
+            self.assertTrue(
+                any(expected_substr in f["type"] for f in findings),
+                f"Expected '{expected_substr}' in findings for '{secret_str}': {findings}"
+            )
+
+    def test_git_tracked_credentials_detection_and_security_check(self):
+        """Tests is_credentials_file_tracked and check_credentials_security in a live Git repository."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root_dir = Path(tmpdir)
+            guides_dir = root_dir / "dev_md_guides"
+            guides_dir.mkdir()
+
+            # Initialize real git repo
+            subprocess.run(["git", "init"], cwd=str(root_dir), check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "Test Agent"], cwd=str(root_dir), check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=str(root_dir), check=True)
+
+            # Initially credentials.md does not exist
+            self.assertFalse(run_compactor.is_credentials_file_tracked(root_dir, guides_dir))
+
+            # Create credentials.md and gitignore
+            cred_file = guides_dir / "credentials.md"
+            cred_file.write_text("API_KEY=" + "s" + "k-1234567890abcdef1234567890abcdef\n", encoding="utf-8")
+            run_compactor.ensure_credentials_gitignored(root_dir, guides_dir)
+
+            # Properly ignored -> not tracked, not staged
+            sec_clean = run_compactor.check_credentials_security(root_dir, guides_dir)
+            self.assertFalse(sec_clean["is_tracked"])
+            self.assertFalse(sec_clean["is_staged"])
+            self.assertEqual(len(sec_clean["issues"]), 0)
+
+            # Scanner skips it when safely gitignored
+            leaks_clean = run_compactor.scan_guides_for_secrets(guides_dir, root_dir=root_dir)
+            self.assertNotIn("credentials.md", leaks_clean)
+
+            # Now simulate accidental force-staging of credentials.md: git add -f
+            subprocess.run(["git", "add", "-f", str(cred_file)], cwd=str(root_dir), check=True, capture_output=True)
+
+            # Now it IS tracked in git index!
+            self.assertTrue(run_compactor.is_credentials_file_tracked(root_dir, guides_dir))
+            sec_staged = run_compactor.check_credentials_security(root_dir, guides_dir)
+            self.assertTrue(sec_staged["is_tracked"])
+            self.assertTrue(sec_staged["is_staged"])
+            self.assertIn("CRITICAL", sec_staged["warning"])
+            self.assertGreater(len(sec_staged["issues"]), 0)
+
+            # And scanner now DOES NOT skip it because it is tracked in Git!
+            leaks_flagged = run_compactor.scan_guides_for_secrets(guides_dir, root_dir=root_dir)
+            self.assertIn("credentials.md", leaks_flagged)
+
+    def test_gitignore_root_and_nested_output_formatting(self):
+        """Tests that rel_guides == '.' and nested paths do not produce invalid './' gitignore patterns."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root_dir = Path(tmpdir)
+            (root_dir / ".git").mkdir()
+
+            # Case 1: guides_dir is root itself (--output .)
+            run_compactor.ensure_credentials_gitignored(root_dir, root_dir)
+            content = (root_dir / ".gitignore").read_text(encoding="utf-8")
+            self.assertIn("\ncredentials.md\n", "\n" + content)
+            self.assertIn("\n!credentials.md.sample\n", "\n" + content)
+            self.assertNotIn("./credentials.md", content)
+
+            # Case 2: nested guides_dir
+            nested_guides = root_dir / "docs" / "dev_md_guides"
+            nested_guides.mkdir(parents=True)
+            run_compactor.ensure_credentials_gitignored(root_dir, nested_guides)
+            content_nested = (root_dir / ".gitignore").read_text(encoding="utf-8")
+            self.assertIn("docs/dev_md_guides/credentials.md", content_nested)
+            self.assertIn("!docs/dev_md_guides/credentials.md.sample", content_nested)
 
 
 if __name__ == "__main__":

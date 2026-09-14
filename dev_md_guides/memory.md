@@ -36,6 +36,7 @@ _Durable knowledge — decisions, gotchas, conventions. Not a log._
 
 ## Gotchas
 - On Windows PowerShell, output encoding for git commands must use UTF-8 with error replacement to prevent character encoding crashes with non-ASCII commit logs.
+- In secret leak scanning, never check multi-line context windows for common English words like "example" or "sample" to determine placeholder status. Real secrets placed near example headers will silently bypass detection; mock validation must inspect the secret token value and immediate delimiter syntax directly.
 
 ## Conventions
 - Every skill in this repository must provide a valid `SKILL.md` compliant with the Agent Skills open standard (agentskills.io).
@@ -43,6 +44,7 @@ _Durable knowledge — decisions, gotchas, conventions. Not a log._
 - Never hardcode machine directories, server hostnames, backend links, or frontend links across markdown docs — always resolve and document via `directory.md`.
 - Zero Credential Exposure: Never commit `dev_md_guides/credentials.md` or live secrets to GitHub. Always verify `.gitignore` ignores `credentials.md` and whitelists `!credentials.md.sample`.
 - Mandatory Warning on Credential Commits: If asked to commit secrets, warn the user explicitly about security risks and require confirmation before proceeding.
+- Credential Security Guard: Actively verify via `git ls-files` that `credentials.md` is never tracked in git history or index, even when the active working tree appears clean.
 
 ## Dead ends
 - Monolithic memory-bank reads on every prompt turn: abandoned due to severe context window consumption (>5,000 tokens per turn).

@@ -132,10 +132,16 @@ fi
 # ---------------------------------------------------------------------------
 hr "CREDENTIAL TRACKING & SECURITY CHECK"
 if git ls-files --error-unmatch dev_md_guides/credentials.md >/dev/null 2>&1; then
-  echo "CRITICAL SECURITY WARNING: dev_md_guides/credentials.md is tracked by git!"
+  echo "CRITICAL SECURITY WARNING: dev_md_guides/credentials.md is tracked in git index/history!"
   echo "Immediately run: git rm --cached dev_md_guides/credentials.md"
+elif git diff --cached --name-only 2>/dev/null | grep -E '(^|/)credentials\.md$' >/dev/null 2>&1; then
+  echo "CRITICAL SECURITY WARNING: credentials.md is staged in git index!"
+  echo "Immediately run: git reset HEAD dev_md_guides/credentials.md"
+elif git status --porcelain dev_md_guides/credentials.md 2>/dev/null | grep -q '??'; then
+  echo "SECURITY WARNING: dev_md_guides/credentials.md is untracked and NOT ignored by .gitignore!"
+  echo "Ensure dev_md_guides/credentials.md is added to .gitignore immediately."
 else
-  echo "OK: dev_md_guides/credentials.md is not tracked in git worktree."
+  echo "OK: dev_md_guides/credentials.md is safely gitignored and not tracked in git worktree."
 fi
 
 hr "DONE"
