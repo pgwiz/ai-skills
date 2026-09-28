@@ -1,13 +1,14 @@
 # Branch State & Worktree Topology
 
 - **Active Branch**: `feat/dev-md-compactor`
-- **HEAD Commit**: `dbeb59e` — feat(dev-md-compactor): add dev_com_agent.md, agent.md, gotchas.md, flow.md, dynamic topic guides, and conversational reflection protocol
-- **Tracking Status**: Ahead 0 commits, behind 0 commits relative to origin/feat/dev-md-compactor
-- **Last Updated**: 2026-09-28 11:16:32 UTC
+- **HEAD Commit**: `f2c04cb` — fix(dev-md-compactor): robust gotchas/workflows parsers, dynamic topic shell extraction, and living doc sync
+- **Tracking Status**: Ahead 1 commits, behind 0 commits relative to origin/feat/dev-md-compactor
+- **Last Updated**: 2026-09-28 11:18:52 UTC
 
 ## Divergence Analysis
 
 ### Recent Commits (Local)
+- `f2c04cb` (2026-09-28 14:18:38 +0300): fix(dev-md-compactor): robust gotchas/workflows parsers, dynamic topic shell extraction, and living doc sync
 - `dbeb59e` (2026-09-28 13:56:44 +0300): feat(dev-md-compactor): add dev_com_agent.md, agent.md, gotchas.md, flow.md, dynamic topic guides, and conversational reflection protocol
 - `ce64f80` (2026-09-14 13:28:35 +0300): fix(dev-md-compactor): eliminate secret scanner false negatives, support extended DB URIs/private keys, and add git-tracked credentials detection
 - `8ca3b34` (2026-09-14 13:17:00 +0300): feat(dev-md-compactor): add isolated credentials management, secret scanner, and mandatory commit warning protocol
@@ -17,18 +18,9 @@
 - `1f7253d` (2026-09-09 13:51:15 +0300): feat: add dev-md-compactor agent skill, living docs, and research archive
 - `540406c` (2026-05-07 16:37:30 +0300): docs: add SECURITY, CODE_OF_CONDUCT, marketplace draft, verification request
 - `850166e` (2026-05-07 16:32:21 +0300): docs: format and clarify GitHub CLI install steps
-- `7da5717` (2026-05-07 16:30:33 +0300): docs: remove remaining hardcoded username mention
 
 ### Uncommitted Working Tree State
-- `M .agent/skills/dev-md-compactor/scripts/gather_context.sh`
-- ` M .agent/skills/dev-md-compactor/scripts/run_compactor.py`
-- ` M dev-md-compactor/scripts/gather_context.sh`
-- ` M dev-md-compactor/scripts/run_compactor.py`
-- ` M dev_md_guides/agent.md`
-- ` M dev_md_guides/branch.md`
-- ` M dev_md_guides/changelog.md`
-- ` M dev_md_guides/structure.md`
-- ` M tests/test_compactor.py`
+- *Working tree clean. No uncommitted modifications.*
 
 ## Integration Checklist
 
