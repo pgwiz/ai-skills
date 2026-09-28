@@ -5,12 +5,19 @@ Agent memory, context compaction, and living documentation skills for Google Ant
 ## Available Skills
 
 ### 1. `dev-md-compactor`
-A specialized context compactor and living documentation engine. Transforms conversational context, AST code changes, git worktrees, and dependency graphs into persistent repository guides within `dev_md_guides/`:
+A specialized context compactor and living documentation engine. Transforms conversational context, AST code changes, git worktrees, and dependency graphs into persistent repository guides within `dev_md_guides/` orchestrated by a root router:
+- `dev_com_agent.md` — Universal root entry point and context router enforcing progressive disclosure and inviolable ground rules.
+- `agent.md` — Master summary index, dynamic topic catalog, and auto-generated structural documentation inventory.
 - `branch.md` — Active branch, upstream divergence, and uncommitted diff surface.
 - `features.md` — Spec-Driven Development (SDD) progress and feature matrices.
 - `structure.md` — Module topography, entry points, and inter-folder import dependencies.
-- `memory.md` — Durable Architecture Decision Records (ADRs) and immutable invariants.
+- `memory.md` — Durable Architecture Decision Records (ADRs) and immutable system invariants.
+- `gotchas.md` — Categorized failure mode analysis (Major Blockers vs. Minor Quirks), root causes, exact fixes, and fix mechanics.
+- `flow.md` — Procedural execution flows, test sequences, context compaction protocols, and git release pipelines.
 - `changelog.md` — Append-only chronological audit log of operational runs and modified AST symbols.
+- `directory.md` & `directory.md.sample` — Centralized environment and routing catalog (servers, backend/frontend links, project directories). Prevents hardcoded paths and protects private endpoints by committing only `directory.md.sample` to GitHub.
+- `credentials.md` & `credentials.md.sample` — Centralized secrets schema. Real credentials remain strictly local in gitignored `credentials.md`; only `credentials.md.sample` with mock placeholders is committed. Includes automated secret leak scanning and a mandatory warning protocol if secret commits are ever attempted.
+- **Dynamic Topic Guides** (e.g. `commands.md`, `mcp.md`) — Spawned dynamically when recurring CLI patterns or MCP tool quirks emerge.
 
 Backed by in-depth research: see [research/Agent Memory Compaction Research.md](research/Agent%20Memory%20Compaction%20Research.md).
 

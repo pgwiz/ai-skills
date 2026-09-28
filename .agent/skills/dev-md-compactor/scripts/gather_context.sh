@@ -57,8 +57,8 @@ fi
 # ---------------------------------------------------------------------------
 hr "DIRECTORY TREE (pruned)"
 if command -v tree >/dev/null 2>&1; then
-  tree -L 3 -I 'node_modules|.git|dist|build|__pycache__|*.pyc|.venv|venv|target|.next|coverage|.turbo|vendor|dev_md_guides' --dirsfirst
-else
+  tree -L 3 -I 'node_modules|.git|dist|build|__pycache__|*.pyc|.venv|venv|target|.next|coverage|.turbo|vendor|dev_md_guides' --dirsfirst 2>/dev/null
+elif find --version >/dev/null 2>&1; then
   find . \
     -path './node_modules' -prune -o \
     -path './.git' -prune -o \
@@ -72,6 +72,8 @@ else
     -path './dev_md_guides' -prune -o \
     -path './vendor' -prune -o \
     -maxdepth 3 -print 2>/dev/null | sed 's|[^/]*/|  |g'
+else
+  git ls-files 2>/dev/null | head -50
 fi
 
 # ---------------------------------------------------------------------------
@@ -87,10 +89,117 @@ done
 
 # ---------------------------------------------------------------------------
 hr "EXISTING dev_md_guides/ FILE SIZES (if present)"
+if [ -f "dev_com_agent.md" ]; then
+  echo "--- dev_com_agent.md (root universal router detected: $(wc -l < dev_com_agent.md) lines) ---"
+fi
 if [ -d "dev_md_guides" ]; then
-  wc -l dev_md_guides/*.md 2>/dev/null
+  wc -l dev_md_guides/*.md dev_md_guides/*.md.sample 2>/dev/null
+  if [ -f "dev_md_guides/agent.md" ]; then
+    echo "--- agent.md (master index detected) ---"
+  fi
+  if [ -f "dev_md_guides/gotchas.md" ]; then
+    echo "--- gotchas.md (failure mode bank detected) ---"
+  fi
+  if [ -f "dev_md_guides/flow.md" ]; then
+    echo "--- flow.md (procedural recipes detected) ---"
+  fi
+  if [ -f "dev_md_guides/directory.md" ]; then
+    echo "--- directory.md (local active catalog detected) ---"
+  elif [ -f "dev_md_guides/directory.md.sample" ]; then
+    echo "--- directory.md.sample (template sample detected) ---"
+  fi
+  if [ -f "dev_md_guides/credentials.md" ]; then
+    echo "--- credentials.md (local active credentials detected) ---"
+  elif [ -f "dev_md_guides/credentials.md.sample" ]; then
+    echo "--- credentials.md.sample (template sample detected) ---"
+  fi
+  # Detect and report dynamic topic guides
+  for df in dev_md_guides/*.md; do
+    [ -f "$df" ] || continue
+    base=$(basename "$df")
+    case "$base" in
+      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|directory.md|credentials.md)
+        ;;
+      *)
+        echo "--- $base (dynamic topic guide detected: $(wc -l < "$df") lines) ---"
+        ;;
+    esac
+  done
 else
   echo "(dev_md_guides/ does not exist yet — will be created)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "AGENT MASTER INDEX (dev_md_guides/agent.md)"
+if [ -f "dev_md_guides/agent.md" ]; then
+  cat "dev_md_guides/agent.md"
+elif [ -f "dev_com_agent.md" ]; then
+  echo "(agent.md not found, displaying dev_com_agent.md root router)"
+  cat "dev_com_agent.md"
+else
+  echo "(no agent master index found)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "DYNAMIC TOPIC GUIDES (if present)"
+DYNAMIC_FOUND=0
+if [ -d "dev_md_guides" ]; then
+  for df in dev_md_guides/*.md; do
+    [ -f "$df" ] || continue
+    base=$(basename "$df")
+    case "$base" in
+      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|directory.md|credentials.md)
+        ;;
+      *)
+        DYNAMIC_FOUND=1
+        echo "=== $base ==="
+        cat "$df"
+        echo
+        ;;
+    esac
+  done
+fi
+if [ "$DYNAMIC_FOUND" -eq 0 ]; then
+  echo "(no dynamic topic guides present)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "DIRECTORY & ENDPOINT CATALOG (dev_md_guides/directory.md)"
+if [ -f "dev_md_guides/directory.md" ]; then
+  cat "dev_md_guides/directory.md"
+elif [ -f "dev_md_guides/directory.md.sample" ]; then
+  echo "(directory.md not found, displaying directory.md.sample)"
+  cat "dev_md_guides/directory.md.sample"
+else
+  echo "(no directory catalog found in dev_md_guides/)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "CREDENTIALS & SECRETS SCHEMA (dev_md_guides/credentials.md.sample)"
+if [ -f "dev_md_guides/credentials.md" ]; then
+  echo "(local credentials.md detected — keeping live secret values redacted from stdout)"
+fi
+if [ -f "dev_md_guides/credentials.md.sample" ]; then
+  cat "dev_md_guides/credentials.md.sample"
+elif [ -f "dev_md_guides/credentials.md" ]; then
+  echo "(credentials.md exists locally but no credentials.md.sample found)"
+else
+  echo "(no credentials catalog found in dev_md_guides/)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "CREDENTIAL TRACKING & SECURITY CHECK"
+if git ls-files --error-unmatch dev_md_guides/credentials.md >/dev/null 2>&1; then
+  echo "CRITICAL SECURITY WARNING: dev_md_guides/credentials.md is tracked in git index/history!"
+  echo "Immediately run: git rm --cached dev_md_guides/credentials.md"
+elif git diff --cached --name-only 2>/dev/null | grep -E '(^|/)credentials\.md$' >/dev/null 2>&1; then
+  echo "CRITICAL SECURITY WARNING: credentials.md is staged in git index!"
+  echo "Immediately run: git reset HEAD dev_md_guides/credentials.md"
+elif git status --porcelain dev_md_guides/credentials.md 2>/dev/null | grep -q '??'; then
+  echo "SECURITY WARNING: dev_md_guides/credentials.md is untracked and NOT ignored by .gitignore!"
+  echo "Ensure dev_md_guides/credentials.md is added to .gitignore immediately."
+else
+  echo "OK: dev_md_guides/credentials.md is safely gitignored and not tracked in git worktree."
 fi
 
 hr "DONE"
