@@ -40,13 +40,13 @@ When recurring tool invocations, commands, or MCP services accumulate 3+ occurre
 | File | Lines | Category | Status | Last Modified |
 |---|---|---|---|---|
 | `agent.md` | 54 | Master Index | Active | 2026-09-28 |
-| `branch.md` | 60 | Worktree State | Active | 2026-09-28 |
-| `changelog.md` | 174 | Operational Audit | Active | 2026-09-28 |
+| `branch.md` | 37 | Worktree State | Active | 2026-09-28 |
+| `changelog.md` | 195 | Operational Audit | Active | 2026-09-28 |
 | `credentials.md` | 33 | Secrets (Local) | Gitignored | 2026-09-14 |
 | `credentials.md.sample` | 33 | Secrets (Sample) | Committed | 2026-09-14 |
 | `directory.md` | 43 | Environment (Local) | Gitignored | 2026-09-14 |
 | `directory.md.sample` | 43 | Environment (Sample) | Committed | 2026-09-14 |
-| `features.md` | 18 | Feature Matrix | Active | 2026-09-14 |
+| `features.md` | 19 | Feature Matrix | Active | 2026-09-28 |
 | `flow.md` | 94 | Execution Flows | Active | 2026-09-28 |
 | `gotchas.md` | 47 | Failure Modes | Active | 2026-09-28 |
 | `memory.md` | 50 | Decisions & ADRs | Active | 2026-09-14 |

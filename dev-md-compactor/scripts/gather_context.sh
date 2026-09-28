@@ -113,6 +113,18 @@ if [ -d "dev_md_guides" ]; then
   elif [ -f "dev_md_guides/credentials.md.sample" ]; then
     echo "--- credentials.md.sample (template sample detected) ---"
   fi
+  # Detect and report dynamic topic guides
+  for df in dev_md_guides/*.md; do
+    [ -f "$df" ] || continue
+    base=$(basename "$df")
+    case "$base" in
+      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|directory.md|credentials.md)
+        ;;
+      *)
+        echo "--- $base (dynamic topic guide detected: $(wc -l < "$df") lines) ---"
+        ;;
+    esac
+  done
 else
   echo "(dev_md_guides/ does not exist yet — will be created)"
 fi
@@ -126,6 +138,29 @@ elif [ -f "dev_com_agent.md" ]; then
   cat "dev_com_agent.md"
 else
   echo "(no agent master index found)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "DYNAMIC TOPIC GUIDES (if present)"
+DYNAMIC_FOUND=0
+if [ -d "dev_md_guides" ]; then
+  for df in dev_md_guides/*.md; do
+    [ -f "$df" ] || continue
+    base=$(basename "$df")
+    case "$base" in
+      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|directory.md|credentials.md)
+        ;;
+      *)
+        DYNAMIC_FOUND=1
+        echo "=== $base ==="
+        cat "$df"
+        echo
+        ;;
+    esac
+  done
+fi
+if [ "$DYNAMIC_FOUND" -eq 0 ]; then
+  echo "(no dynamic topic guides present)"
 fi
 
 # ---------------------------------------------------------------------------
