@@ -299,8 +299,13 @@ class TestCompactorEngine(unittest.TestCase):
             run_compactor.write_branch_md(guides_dir, git_info)
             run_compactor.write_structure_md(guides_dir, dir_summary, imports_map, manifests)
             run_compactor.append_changelog_md(guides_dir, modified_nodes, git_info)
+            run_compactor.update_agent_inventory(guides_dir)
 
-            # Validate generated files (all 8 living guide files)
+            # Validate generated files (all living guide files and root router)
+            self.assertTrue((root_dir / "dev_com_agent.md").exists())
+            self.assertTrue((guides_dir / "agent.md").exists())
+            self.assertTrue((guides_dir / "gotchas.md").exists())
+            self.assertTrue((guides_dir / "flow.md").exists())
             self.assertTrue((guides_dir / "branch.md").exists())
             self.assertTrue((guides_dir / "structure.md").exists())
             self.assertTrue((guides_dir / "changelog.md").exists())
@@ -310,6 +315,12 @@ class TestCompactorEngine(unittest.TestCase):
             self.assertTrue((guides_dir / "directory.md").exists())
             self.assertTrue((guides_dir / "credentials.md.sample").exists())
             self.assertTrue((guides_dir / "credentials.md").exists())
+
+            # Validate agent.md inventory table populated
+            agent_content = (guides_dir / "agent.md").read_text(encoding="utf-8")
+            self.assertIn("branch.md", agent_content)
+            self.assertIn("gotchas.md", agent_content)
+            self.assertIn("flow.md", agent_content)
 
             # Validate .gitignore entries
             gitignore = root_dir / ".gitignore"
@@ -479,6 +490,189 @@ class TestCompactorEngine(unittest.TestCase):
             content_nested = (root_dir / ".gitignore").read_text(encoding="utf-8")
             self.assertIn("docs/dev_md_guides/credentials.md", content_nested)
             self.assertIn("!docs/dev_md_guides/credentials.md.sample", content_nested)
+
+    def test_new_architecture_templates_and_fallbacks(self):
+        """Tests that dev_com_agent.md, agent.md, gotchas.md, and flow.md seed properly from templates and fallback."""
+        templates_dir = Path(__file__).resolve().parent.parent / "dev-md-compactor" / "templates"
+
+        # Case A: Seed with real templates
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root_dir = Path(tmpdir)
+            guides_dir = root_dir / "dev_md_guides"
+            guides_dir.mkdir()
+
+            run_compactor.seed_static_templates(guides_dir, templates_dir=templates_dir, root_dir=root_dir)
+
+            self.assertTrue((root_dir / "dev_com_agent.md").exists())
+            self.assertTrue((guides_dir / "agent.md").exists())
+            self.assertTrue((guides_dir / "gotchas.md").exists())
+            self.assertTrue((guides_dir / "flow.md").exists())
+
+            root_agent_text = (root_dir / "dev_com_agent.md").read_text(encoding="utf-8")
+            self.assertIn("Universal Agent Entry Point", root_agent_text)
+            self.assertIn("dev_md_guides/agent.md", root_agent_text)
+
+            agent_text = (guides_dir / "agent.md").read_text(encoding="utf-8")
+            self.assertIn("Executive Summary Table", agent_text)
+            self.assertIn("Dynamic Topic Guides", agent_text)
+
+            gotchas_text = (guides_dir / "gotchas.md").read_text(encoding="utf-8")
+            self.assertIn("Major Blockers", gotchas_text)
+            self.assertIn("Minor Quirks", gotchas_text)
+
+            flow_text = (guides_dir / "flow.md").read_text(encoding="utf-8")
+            self.assertIn("Test & Quality Gate Execution Flow", flow_text)
+
+        # Case B: Fallback generator (templates_dir=None)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root_dir = Path(tmpdir)
+            guides_dir = root_dir / "dev_md_guides"
+            guides_dir.mkdir()
+
+            run_compactor.seed_static_templates(guides_dir, templates_dir=None, root_dir=root_dir)
+
+            self.assertTrue((root_dir / "dev_com_agent.md").exists())
+            self.assertTrue((guides_dir / "agent.md").exists())
+            self.assertTrue((guides_dir / "gotchas.md").exists())
+            self.assertTrue((guides_dir / "flow.md").exists())
+
+            self.assertIn("Universal Agent Entry Point", (root_dir / "dev_com_agent.md").read_text(encoding="utf-8"))
+            self.assertIn("Executive Summary Table", (guides_dir / "agent.md").read_text(encoding="utf-8"))
+            self.assertIn("Major Blockers", (guides_dir / "gotchas.md").read_text(encoding="utf-8"))
+            self.assertIn("Procedural Execution Flows", (guides_dir / "flow.md").read_text(encoding="utf-8"))
+
+    def test_dynamic_discovery_and_inventory_generation(self):
+        """Tests that discover_guide_files accurately categorizes core and dynamic files, and update_agent_inventory writes the table."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            guides_dir = Path(tmpdir)
+            # Create core guides
+            (guides_dir / "agent.md").write_text("# Master Index\n<!-- AUTO-GENERATED BY COMPACTOR: DO NOT EDIT DIRECTLY -->\n| old |\n<!-- END AUTO-GENERATED INVENTORY -->\n", encoding="utf-8")
+            (guides_dir / "branch.md").write_text("# Branch\nline2\n", encoding="utf-8")
+            (guides_dir / "gotchas.md").write_text("# Gotchas\nline2\nline3\n", encoding="utf-8")
+            (guides_dir / "flow.md").write_text("# Flow\nline2\n", encoding="utf-8")
+            (guides_dir / "credentials.md").write_text("API_KEY=mock\n", encoding="utf-8")
+            (guides_dir / "credentials.md.sample").write_text("API_KEY=sample\n", encoding="utf-8")
+            (guides_dir / "directory.md").write_text("HOST=localhost\n", encoding="utf-8")
+            (guides_dir / "directory.md.sample").write_text("HOST=sample\n", encoding="utf-8")
+
+            # Create dynamic topic guides
+            (guides_dir / "commands.md").write_text("# Commands\n```bash\ngit status\n```\n", encoding="utf-8")
+            (guides_dir / "mcp.md").write_text("# MCP\n- tool: test\n", encoding="utf-8")
+            (guides_dir / "database.md").write_text("# Database\nmigrations\n", encoding="utf-8")
+
+            discovered = run_compactor.discover_guide_files(guides_dir)
+            disc_map = {d["filename"]: d for d in discovered}
+
+            self.assertIn("agent.md", disc_map)
+            self.assertEqual(disc_map["agent.md"]["category"], "Master Index")
+            self.assertEqual(disc_map["branch.md"]["category"], "Worktree State")
+            self.assertEqual(disc_map["gotchas.md"]["category"], "Failure Modes")
+            self.assertEqual(disc_map["flow.md"]["category"], "Execution Flows")
+            self.assertEqual(disc_map["commands.md"]["category"], "Dynamic Topic")
+            self.assertEqual(disc_map["mcp.md"]["category"], "Dynamic Topic")
+            self.assertEqual(disc_map["database.md"]["category"], "Dynamic Topic")
+
+            self.assertEqual(disc_map["credentials.md"]["status"], "Gitignored")
+            self.assertEqual(disc_map["credentials.md.sample"]["status"], "Committed")
+            self.assertEqual(disc_map["directory.md"]["status"], "Gitignored")
+            self.assertEqual(disc_map["directory.md.sample"]["status"], "Committed")
+            self.assertEqual(disc_map["branch.md"]["status"], "Active")
+
+            # Test updating inventory in agent.md
+            run_compactor.update_agent_inventory(guides_dir)
+            agent_content = (guides_dir / "agent.md").read_text(encoding="utf-8")
+
+            self.assertIn("`database.md`", agent_content)
+            self.assertIn("`commands.md`", agent_content)
+            self.assertIn("`mcp.md`", agent_content)
+            self.assertIn("`gotchas.md`", agent_content)
+            self.assertIn("`flow.md`", agent_content)
+            self.assertIn("Dynamic Topic", agent_content)
+            self.assertIn("Gitignored", agent_content)
+
+    def test_gotchas_and_workflows_counting(self):
+        """Tests count_gotchas and count_workflows parsers."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            guides_dir = Path(tmpdir)
+
+            # Non-existent files return zero gracefully
+            self.assertEqual(run_compactor.count_gotchas(guides_dir), {"total": 0, "major": 0, "minor": 0})
+            self.assertEqual(run_compactor.count_workflows(guides_dir), 0)
+
+            # Gotchas file with structured issues
+            gotchas_md = guides_dir / "gotchas.md"
+            gotchas_md.write_text("""# Failure Modes
+## 1. Major Blockers
+### GOTCHA-001: First major
+- **Severity**: Major Blocker
+### GOTCHA-002: Second major
+- **Severity**: Major Blocker
+
+## 2. Minor Quirks
+### GOTCHA-003: First minor
+- **Severity**: Minor Quirk
+""", encoding="utf-8")
+
+            counts = run_compactor.count_gotchas(guides_dir)
+            self.assertEqual(counts["total"], 3)
+            self.assertEqual(counts["major"], 2)
+            self.assertEqual(counts["minor"], 1)
+
+            # Flow file with numbered flows
+            flow_md = guides_dir / "flow.md"
+            flow_md.write_text("""# Execution Flows
+## 1. Test Execution Flow
+Step 1
+## 2. Compaction Flow
+Step 2
+## 3. Git Release Flow
+Step 3
+## 4. Deploy Flow
+Step 4
+""", encoding="utf-8")
+
+            flows = run_compactor.count_workflows(guides_dir)
+            self.assertEqual(flows, 4)
+
+    def test_report_with_inventory_gotchas_and_workflows(self):
+        """Tests that print_report outputs inventory, gotchas, workflows, and dynamic topics cleanly."""
+        import io
+
+        git_info = {
+            "branch": "feat/test",
+            "head_hash": "abcdef1",
+            "head_msg": "test commit",
+            "tracking": "up to date",
+        }
+        inventory = [
+            {"filename": "agent.md", "lines": 50, "category": "Master Index", "status": "Active"},
+            {"filename": "gotchas.md", "lines": 40, "category": "Failure Modes", "status": "Active"},
+            {"filename": "flow.md", "lines": 30, "category": "Execution Flows", "status": "Active"},
+            {"filename": "commands.md", "lines": 20, "category": "Dynamic Topic", "status": "Active"},
+        ]
+        gotchas = {"total": 5, "major": 3, "minor": 2}
+
+        buf = io.StringIO()
+        old_stdout = sys.stdout
+        try:
+            sys.stdout = buf
+            run_compactor.print_report(
+                git_info=git_info,
+                modified_nodes=[],
+                dir_summary={"src": ["app.py"]},
+                manifests=["package.json"],
+                guides_inventory=inventory,
+                gotchas_counts=gotchas,
+                workflow_count=2,
+            )
+        finally:
+            sys.stdout = old_stdout
+
+        output = buf.getvalue()
+        self.assertIn("Active Guides: 4 living guide files", output)
+        self.assertIn("Dynamic Topics:commands.md", output)
+        self.assertIn("Gotchas Bank:  5 entries (3 major blockers, 2 minor quirks)", output)
+        self.assertIn("Workflows:     2 execution flows documented in flow.md", output)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 _Last updated: 2026-09-09_
 
 ## Done
+- **Comprehensive Agent Knowledge Architecture** — Root router (`dev_com_agent.md`), master summary & progressive disclosure index (`agent.md`), categorized error tracking (`gotchas.md`), procedural execution recipes (`flow.md`), dynamic topic guides (`commands.md`, `mcp.md`), and Conversational Reflection Protocol. Location: `dev_com_agent.md`, `dev_md_guides/`, `dev-md-compactor/`.
 - **`dev-md-compactor` Agent Skill** — AST-aware deterministic context compactor maintaining `dev_md_guides/` (branch.md, features.md, structure.md, memory.md, changelog.md, directory.md.sample, credentials.md.sample). Location: `dev-md-compactor/`.
 - **Zero-Hardcoded Directory Catalog (`directory.md` & `directory.md.sample`)** — Centralized environment, servers, frontend/backend links catalog; gitignored local file with tracked sanitized sample deployed to GitHub. Location: `dev-md-compactor/templates/`, `dev_md_guides/directory.md.sample`.
 - **Zero-Exposure Credentials Management (`credentials.md` & `credentials.md.sample`)** — Isolated secrets schema; gitignored local credentials, tracked mock sample, automated secret scanner, and mandatory user warning protocol before any credential commit. Location: `dev-md-compactor/templates/`, `dev_md_guides/credentials.md.sample`, `dev-md-compactor/scripts/run_compactor.py`.

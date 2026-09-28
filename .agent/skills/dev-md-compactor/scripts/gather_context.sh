@@ -89,8 +89,20 @@ done
 
 # ---------------------------------------------------------------------------
 hr "EXISTING dev_md_guides/ FILE SIZES (if present)"
+if [ -f "dev_com_agent.md" ]; then
+  echo "--- dev_com_agent.md (root universal router detected: $(wc -l < dev_com_agent.md) lines) ---"
+fi
 if [ -d "dev_md_guides" ]; then
   wc -l dev_md_guides/*.md dev_md_guides/*.md.sample 2>/dev/null
+  if [ -f "dev_md_guides/agent.md" ]; then
+    echo "--- agent.md (master index detected) ---"
+  fi
+  if [ -f "dev_md_guides/gotchas.md" ]; then
+    echo "--- gotchas.md (failure mode bank detected) ---"
+  fi
+  if [ -f "dev_md_guides/flow.md" ]; then
+    echo "--- flow.md (procedural recipes detected) ---"
+  fi
   if [ -f "dev_md_guides/directory.md" ]; then
     echo "--- directory.md (local active catalog detected) ---"
   elif [ -f "dev_md_guides/directory.md.sample" ]; then
@@ -103,6 +115,17 @@ if [ -d "dev_md_guides" ]; then
   fi
 else
   echo "(dev_md_guides/ does not exist yet — will be created)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "AGENT MASTER INDEX (dev_md_guides/agent.md)"
+if [ -f "dev_md_guides/agent.md" ]; then
+  cat "dev_md_guides/agent.md"
+elif [ -f "dev_com_agent.md" ]; then
+  echo "(agent.md not found, displaying dev_com_agent.md root router)"
+  cat "dev_com_agent.md"
+else
+  echo "(no agent master index found)"
 fi
 
 # ---------------------------------------------------------------------------

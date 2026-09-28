@@ -1,5 +1,5 @@
 # Codebase Architecture & Directory Dependency Graph
-_Last regenerated: 2026-09-14 10:27:33 UTC by dev-md-compactor_
+_Last regenerated: 2026-09-28 10:54:17 UTC by dev-md-compactor_
 
 ## Project Manifests & Build Tools
 - *(No standard build manifests detected at root)*
@@ -23,7 +23,7 @@ _Last regenerated: 2026-09-14 10:27:33 UTC by dev-md-compactor_
 - **Discovered Module Dependencies**: `argparse, ast, datetime, os, pathlib, re, subprocess, sys`
 
 ### `dev-md-compactor/templates/`
-- **Files (9)**: `branch.md, changelog.md, credentials.md, credentials.md.sample, directory.md, directory.md.sample, features.md, memory.md` (+1 more)
+- **Files (15)**: `agent.md, branch.md, changelog.md, commands.md, credentials.md, credentials.md.sample, dev_com_agent.md, directory.md` (+7 more)
 
 ### `install/`
 - **Files (3)**: `INSTALL.md, install.ps1, install.sh`
@@ -32,11 +32,11 @@ _Last regenerated: 2026-09-14 10:27:33 UTC by dev-md-compactor_
 - **Files (2)**: `Agent Memory Compaction Research.docx, Agent Memory Compaction Research.md`
 
 ### `root/`
-- **Files (7)**: `CODE_OF_CONDUCT.md, GEMINI.md, INSTALL_PLAN_v2.md, MARKETPLACE.md, README.md, SECURITY.md, verification_request.md`
+- **Files (8)**: `CODE_OF_CONDUCT.md, GEMINI.md, INSTALL_PLAN_v2.md, MARKETPLACE.md, README.md, SECURITY.md, dev_com_agent.md, verification_request.md`
 
 ### `tests/`
 - **Files (1)**: `test_compactor.py`
-- **Discovered Module Dependencies**: `pathlib, run_compactor, shutil, subprocess, sys, tempfile, unittest`
+- **Discovered Module Dependencies**: `io, pathlib, run_compactor, shutil, subprocess, sys, tempfile, unittest`
 
 ## Environment & Directory Catalog Reference
 - Central Catalog: `dev_md_guides/directory.md` (sample committed as `dev_md_guides/directory.md.sample`).

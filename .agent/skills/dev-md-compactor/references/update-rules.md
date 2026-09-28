@@ -4,6 +4,34 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 
 ---
 
+## `dev_com_agent.md` — Universal Root Router & Ground Rules
+
+**Principle:** Universal entry point for any autonomous agent entering the repository. Directs agents to `dev_md_guides/agent.md` and enforces progressive context disclosure and inviolable ground rules.
+
+**Rules:**
+1. Maintain at the repository root worktree.
+2. Link directly to `dev_md_guides/agent.md` as the master index.
+3. Establish the core ground rules: zero hardcoded directories/endpoints, zero credential exposure (with mandatory security warning protocol), and proactive compaction triggers.
+4. Keep concise and structural. Never duplicate deep code details or historical logs.
+
+**Size Limit:** ~40 lines.
+
+---
+
+## `dev_md_guides/agent.md` — Master Summary & Dynamic Inventory
+
+**Principle:** Single source of indexation and progressive disclosure. Provides agents with an executive overview of all files in `dev_md_guides/` so they can load only relevant guides for their current task.
+
+**Rules:**
+1. Maintain 1–3 line executive summaries per guide in the Executive Summary Table.
+2. Index dynamic topic guides (`commands.md`, `mcp.md`) with focus areas and spawning triggers.
+3. Automatically maintain the Structural Documentation Inventory table (file, line count, category, status, last modified) via `run_compactor.py`.
+4. Update executive summaries whenever a guide's scope or purpose shifts.
+
+**Size Limit:** ~150 lines.
+
+---
+
 ## `dev_md_guides/structure.md` — Regenerate Fully
 
 **Principle:** This document's sole responsibility is "what exists where right now." There is no historical narrative to lose. Incrementally hand-patching directory structures across sessions inevitably leads to silent drift.
@@ -57,16 +85,52 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 
 ## `dev_md_guides/memory.md` — Append-Only + Explicit Supersession
 
-**Principle:** Captures immutable architectural invariants, Architecture Decision Records (ADRs), non-obvious gotchas, and rejected alternatives. This is the highest-signal document for surviving context resets and preventing repeated errors.
+**Principle:** Captures durable architectural decisions (ADRs) and immutable system invariants. Routine bug fixes and failure modes are tracked in `gotchas.md`.
 
 **Rules:**
-1. Capture durable rationale ("why we chose X over Y"), non-obvious runtime gotchas, and conventions not covered by linters.
-2. **Do NOT log routine events** here (routine events belong in `changelog.md`).
-3. Append new ADRs under their respective headers with standard fields: Date, Status, Context, Decision, Consequences, Rejected Alternatives.
-4. **Pruning Gate:** Only prune or replace an entry if an architectural decision is explicitly superseded. When superseding, note: `(supersedes decision from YYYY-MM-DD; see changelog)`. Never delete decisions silently.
-5. Capture critical security invariants: zero credential exposure, gitignore rules for `credentials.md`, and mandatory user-warning protocol before committing any secrets.
+1. Capture durable architecture decisions (ADRs), invariants, conventions, and rejected alternatives.
+2. Append new ADRs with standard fields: Date, Status, Context, Decision, Consequences, Rejected Alternatives.
+3. **Pruning Gate:** Only prune or replace an entry if an architectural decision is explicitly superseded. When superseding, note: `(supersedes decision from YYYY-MM-DD; see changelog)`. Never delete decisions silently.
+4. Capture critical security invariants: zero credential exposure, gitignore rules for `credentials.md`, and mandatory user-warning protocol before committing any secrets.
 
 **Size Limit:** ~300 lines. When approaching the threshold, re-read and tighten descriptions, merging related constraints while preserving core invariants.
+
+---
+
+## `dev_md_guides/gotchas.md` — Categorized Failure Modes & Fix Mechanics
+
+**Principle:** Central repository for operational errors, fatal crashes, platform-specific bugs, and API quirks discovered during execution. Prevents agents and engineers from repeating identical debugging loops across sessions.
+
+**Rules:**
+1. Categorize entries by severity:
+   - **Major Blockers**: Fatal crashes, data loss risks, blocking bugs, environment breakages, security vulnerabilities.
+   - **Minor Quirks**: Silent defaults, formatting discrepancies, platform-specific edge cases, CLI quirks.
+2. Adhere strictly to the **Resolution Anatomy**:
+   - **Trigger / Symptom**: Concrete error message, command failure, or unintended symptom.
+   - **Root Cause ("Why it failed")**: Technical explanation of why the failure occurred.
+   - **Exact Fix**: The precise code, flag, or environment adjustment applied.
+   - **Mechanics ("Why the fix worked")**: Why this solution succeeded and why it is resilient.
+3. When a specific failure mode recurs 3+ times with deep nuances, extract it into a dynamic topic guide (e.g. `commands.md` or `mcp.md`).
+
+**Size Limit:** ~300 lines. When approaching limit, consolidate related minor quirks or prune obsolete library versions.
+
+---
+
+## `dev_md_guides/flow.md` — Procedural Execution Recipes & Workflows
+
+**Principle:** Tested, step-by-step procedural playbooks for multi-step tasks, tool-chain recipes, build sequences, and verification protocols.
+
+**Rules:**
+1. Structure each recipe with numbered steps and explicit shell/code blocks.
+2. Include explicit verification criteria or post-conditions for each flow.
+3. Maintain common operational pipelines:
+   - Test & Quality Gate Execution Flow
+   - Context Compaction & Living Documentation Sync Flow
+   - Git Branching, Secret Safety & PR Update Flow
+   - Deployment, Mirroring & Installation Sync Flow
+4. If an operational recipe exceeds ~30 lines or focuses on a specialized domain, extract it into a dedicated dynamic topic guide.
+
+**Size Limit:** ~250 lines.
 
 ---
 
@@ -77,7 +141,7 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 **Rules:**
 1. Prepend or append new timestamped entries for each operational run (newest first).
 2. Record trigger event, active branch, HEAD commit, AST code modifications (modified functions, classes, line numbers), and executed terminal commands with exit codes.
-3. Reference `memory.md` for architectural reasoning rather than duplicating verbose discussion.
+3. Reference `memory.md` for architectural reasoning and `gotchas.md` for error resolution rather than duplicating verbose discussion.
 4. Never log unredacted secret values or live credentials into changelog entries.
 
 **Size Limit & Archiving:** When the file exceeds ~500 lines, extract entries older than the latest milestone into `dev_md_guides/archive/changelog-<date-range>.md` and leave a one-line link at the bottom. Never delete historical entries.
@@ -114,3 +178,17 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 5. Never log unredacted secret values in `changelog.md` or output them to standard execution logs.
 
 **Size Limit:** ~100 lines.
+
+---
+
+## Dynamic Topic Guides (e.g. `commands.md`, `mcp.md`) — Spawning & Lifecycle
+
+**Principle:** Provide specialized operational depth for recurring tool domains without bloating core guide files beyond their size budgets.
+
+**Rules:**
+1. **Spawning Heuristic**: Create a dynamic topic guide when a tool, command, or service recurs 3+ times with distinct nuances, or when a subsection in `gotchas.md` or `flow.md` grows beyond ~30 lines.
+2. Register the dynamic guide in `dev_md_guides/agent.md` under Dynamic Topic Guides and update the structural inventory.
+3. Structure with purpose, catalog table, exact invocation syntax, and known quirks.
+4. Prune or merge dynamic guides if the underlying technology is deprecated from the project.
+
+**Size Limit:** ~150 lines per dynamic guide.
