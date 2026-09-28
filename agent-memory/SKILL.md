@@ -14,12 +14,23 @@ The installer writes these details to `{AGENT_SYSTEM_PATH}/GLOBAL_PROTOCOL.md`
 based on the user's environment at install time.
 
 ## PATH RESOLUTION
-At session start, read `~/.copilot/skills/agent-memory/.agent-config`
-(or `%USERPROFILE%\.copilot\skills\agent-memory\.agent-config` on Windows).
+At session start, resolve `.agent-config` by checking the first available location:
+1. Google Antigravity: `~/.gemini/config/skills/agent-memory/.agent-config` (Windows: `%USERPROFILE%\.gemini\config\skills\agent-memory\.agent-config`)
+2. GitHub Copilot: `~/.copilot/skills/agent-memory/.agent-config` (Windows: `%USERPROFILE%\.copilot\skills\agent-memory\.agent-config`)
+3. Agent Skills: `~/.agents/skills/agent-memory/.agent-config` (Windows: `%USERPROFILE%\.agents\skills\agent-memory\.agent-config`)
+4. Global System Path: `~/agent-system/.agent-config` (Windows: `%USERPROFILE%\agent-system\.agent-config`)
+5. Current skill directory: `.agent-config`
+
 This file is written by the installer and contains:
   AGENT_SYSTEM_PATH=...
   AGENT_USER=...
   AGENT_HOME=...
+
+If `.agent-config` is not yet present, use safe defaults:
+  AGENT_SYSTEM_PATH = `~/agent-system` (Windows: `%USERPROFILE%\agent-system`)
+  AGENT_HOME = `~` (Windows: `%USERPROFILE%`)
+  AGENT_USER = current OS login user or git user
+
 Use these values wherever you see {AGENT_SYSTEM_PATH} in this skill.
 
 ## USERNAME SETUP (FIRST RUN)

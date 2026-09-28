@@ -1,81 +1,126 @@
-# Agent Memory Skill — Install Guide
+# AI Skills — Universal Install Guide
 # https://github.com/pgwiz/ai-skills
 
-A self-installing agent memory system that gives your AI coding agent
-persistent project memory, safe file-writing rules, and cross-session context.
+Automated installers for Google Antigravity, GitHub Copilot, Claude Code, and any agent runtime adhering to the [Agent Skills open standard](https://agentskills.io).
 
-Works with: GitHub Copilot (VS Code), Claude Code, any .agents/skills runtime.
+Supported skills:
+- **`dev-md-compactor`**: Living markdown compactor and documentation maintenance engine (`dev_md_guides/`).
+- **`agent-memory`**: Persistent developer identity, safe file-writing rules, and cross-session memory bootstrap.
 
-Installers are self-configuring: if local source files are present, they install from local;
-if not, they automatically pull from GitHub and continue.
+Installers are self-configuring: if local source files are present, they install from local files; if not, they automatically pull from GitHub.
 
 ---
 
-## Install (pick your method)
-
-### GitHub CLI — recommended
-
-Step-by-step to get to the skill install command:
-
-1. **Install or upgrade `gh` on Windows (winget):**
-   - Install: `winget install --id GitHub.cli`
-   - Upgrade: `winget upgrade --id GitHub.cli`
-2. **Install `gh` on Linux (apt):**
-   - `type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)`
-   - `curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg`
-   - `sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg`
-   - `echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null`
-   - `sudo apt update && sudo apt install gh -y`
-3. **Upgrade `gh` on Linux:** `sudo apt update && sudo apt install gh -y`
-4. **Authenticate:** `gh auth login`
-5. **Install the skill:** `gh skills install pgwiz/ai-skills agent-memory`
-
-### macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/pgwiz/ai-skills/main/install/install.sh | bash
+## 1. Quick Install (Recommended)
 
 ### Windows (PowerShell)
+To install all skills for auto-detected runtimes (Google Antigravity, GitHub Copilot, Claude Code):
+```powershell
 irm https://raw.githubusercontent.com/pgwiz/ai-skills/main/install/install.ps1 | iex
+```
 
-### Manual
+To target a specific runtime or skill:
+```powershell
+# Install all skills into Google Antigravity only:
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pgwiz/ai-skills/main/install/install.ps1))) -Target antigravity -Skill all -Yes
+
+# Install only dev-md-compactor:
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/pgwiz/ai-skills/main/install/install.ps1))) -Skill dev-md-compactor -Yes
+```
+
+### macOS / Linux / WSL (POSIX Shell)
+To install all skills for auto-detected runtimes:
+```bash
+curl -fsSL https://raw.githubusercontent.com/pgwiz/ai-skills/main/install/install.sh | bash
+```
+
+To target a specific runtime or skill:
+```bash
+# Install all skills into Google Antigravity only:
+curl -fsSL https://raw.githubusercontent.com/pgwiz/ai-skills/main/install/install.sh | bash -s -- --target antigravity --skill all -y
+
+# Install only dev-md-compactor:
+curl -fsSL https://raw.githubusercontent.com/pgwiz/ai-skills/main/install/install.sh | bash -s -- --skill dev-md-compactor -y
+```
+
+---
+
+## 2. GitHub CLI (`gh skills`)
+
+If you use GitHub CLI with the skills extension:
+```bash
+# Install dev-md-compactor
+gh skills install pgwiz/ai-skills dev-md-compactor
+
+# Install agent-memory
+gh skills install pgwiz/ai-skills agent-memory
+```
+
+---
+
+## 3. Local Repository Execution
+
+When you have cloned the repository locally:
+```bash
 git clone https://github.com/pgwiz/ai-skills.git
-cd ai-skills/install
-bash install.sh
-./install.ps1
+cd ai-skills
+```
+
+**PowerShell:**
+```powershell
+.\install\install.ps1 -Target antigravity -Skill all -Yes
+```
+
+**Bash:**
+```bash
+./install/install.sh --target antigravity --skill all -y
+```
 
 ---
 
-## What gets installed
+## 4. What Gets Installed
 
-- Global memory files → ~/agent-system/ (or %USERPROFILE%\agent-system\ on Windows)
-- Skill → ~/.copilot/skills/agent-memory/ (auto-detected)
-- Config → .agent-config (paths baked in for your machine)
-
----
-
-## After install
-
-Open any project and tell the agent:
-Bootstrap .agent/ for this project
-
-The agent will:
-1. Scan the codebase
-2. Generate .agent/ memory files
-3. Generate README.env
-4. Commit and push README.env
-
-From then on, just type your task. No more repeating yourself.
+| Component | Target Location | Description |
+|---|---|---|
+| **Global memory files** | `~/agent-system/` (`%USERPROFILE%\agent-system\`) | System protocol, bootstrap rules, and global conventions |
+| **Google Antigravity** | `~/.gemini/config/skills/<skill-name>/` | Globally active skills for Google Antigravity sessions |
+| **GitHub Copilot** | `~/.copilot/skills/<skill-name>/` | Globally active skills for Copilot CLI & VS Code |
+| **Agent Skills / Claude** | `~/.agents/skills/<skill-name>/` | Standard agent skills runtime directory |
+| **Configuration** | `.agent-config` | Machine-specific path bindings and identity tokens |
 
 ---
 
-## Per-project (no install needed)
+## 5. Usage & Verification
 
-Add the skill directly to any repo:
-mkdir -p .github/skills
-gh skills install pgwiz/ai-skills agent-memory --local
+### dev-md-compactor
+- In Antigravity: Trigger via `/compact-docs` or ask `"compact memory"`, `"update dev guides"`.
+- Proactive compaction: Automatically runs when tasks conclude.
+- Deterministic CLI:
+  ```bash
+  python dev-md-compactor/scripts/run_compactor.py
+  ```
+
+### agent-memory
+- In any new project root, prompt your agent:
+  > *"Bootstrap .agent/ for this project"*
+- The agent will initialize `.agent/` memory files, configure `README.env`, and enforce conventions.
 
 ---
 
-## Uninstall
+## 6. Uninstall
 
-rm -rf ~/agent-system ~/.copilot/skills/agent-memory
-# Windows: Remove-Item -Recurse $env:USERPROFILE\agent-system, $env:USERPROFILE\.copilot\skills\agent-memory
+```bash
+# Antigravity:
+rm -rf ~/.gemini/config/skills/dev-md-compactor ~/.gemini/config/skills/agent-memory
+
+# Copilot:
+rm -rf ~/.copilot/skills/dev-md-compactor ~/.copilot/skills/agent-memory
+
+# Global system files:
+rm -rf ~/agent-system
+```
+
+On Windows (PowerShell):
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.gemini\config\skills\dev-md-compactor", "$env:USERPROFILE\.gemini\config\skills\agent-memory", "$env:USERPROFILE\agent-system" -ErrorAction SilentlyContinue
+```
