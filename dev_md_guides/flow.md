@@ -80,15 +80,20 @@ gh pr view 2
 
 ## 4. Multi-Skill Mirroring & Deployment Flow
 
-When modifying core skills (`dev-md-compactor`), propagate changes to project mirrors and global user installations:
+When modifying core skills (`dev-md-compactor`, `agent-memory`), propagate changes to project mirrors and global user installations using the universal installer:
 
 ```bash
-# Step 1: Synchronize to project-local .agent directory
-# Copy dev-md-compactor/ into .agent/skills/dev-md-compactor/
+# Windows (PowerShell) - Update all skills for Google Antigravity:
+.\install\install.ps1 -Target antigravity -Skill all -Yes
 
-# Step 2: Synchronize to global user Antigravity directory
-# Copy dev-md-compactor/ into ~/.gemini/config/skills/dev-md-compactor/
+# POSIX (macOS/Linux/WSL) - Update all skills for Google Antigravity:
+./install/install.sh --target antigravity --skill all -y
 
-# Step 3: Run test suite to verify all locations pass
+# Verify synchronization to global user Antigravity directory:
+# ~/.gemini/config/skills/dev-md-compactor/
+# ~/.gemini/config/skills/agent-memory/
+# ~/agent-system/.agent-config
+
+# Run test suite to verify all locations pass:
 python -m unittest discover tests
 ```

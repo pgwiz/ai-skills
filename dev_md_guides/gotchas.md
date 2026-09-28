@@ -45,3 +45,11 @@ _Maintained by the dev-md-compactor Conversational Reflection Protocol._
 - **Root Cause ("Why it failed")**: Naive `split("`")` and indiscriminate stripping discarded internal backticks and trailing notes.
 - **Exact Fix**: Check if the string begins and ends with backticks and contains exactly 2 backticks before stripping (`val.startswith("`") and val.endswith("`") and val.count("`") == 2`).
 - **Mechanics ("Why the fix worked")**: Strips only true wrapping quotes while preserving internal code formatting and parameter comments.
+
+### GOTCHA-006: Windows PowerShell 5.1 CP1252 Parser Failure on UTF-8 Scripts
+- **Severity**: Major Blocker (Installer Script Syntax Error)
+- **Trigger / Symptom**: `install.ps1` failed with `Missing closing '}' in statement block or type definition` at seemingly valid pipeline loops or string blocks when executed via `powershell.exe` on Windows.
+- **Root Cause ("Why it failed")**: Windows PowerShell 5.1 assumes ANSI (CP1252 on Western systems) for script files without a UTF-8 BOM. When parsing UTF-8 multibyte characters like Unicode checkmarks `✓` (`0xE2 0x9C 0x93`), byte `0x93` maps to `“` (left double quote) in CP1252. This opens an unintended quotation string that swallows subsequent code and closing curly braces `}`, causing parser abortion.
+- **Exact Fix**: Enforced pure ASCII markers (e.g. `+`, `*`, `[OK]`) across all `.ps1` and `.sh` installer scripts and added automated test assertion in `tests/test_compactor.py` (`test_installer_files_exist_and_pure_ascii`).
+- **Mechanics ("Why the fix worked")**: Pure 7-bit ASCII is identical across UTF-8, Windows-1252, and ISO-8859-1, guaranteeing zero encoding misinterpretations regardless of whether PowerShell 5.1, pwsh 7+, or POSIX sh executes the file.
+

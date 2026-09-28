@@ -1,6 +1,15 @@
 # Session Operational Changelog
 _Append-only. Newest first. Never edit past entries._
 
+## [2026-09-28 16:16:12 UTC] — Branch `feat/dev-md-compactor` (HEAD: `c38e91d`)
+- **Event**: Automated Context Compaction
+- **Operational Scope**: Synchronized repository ground-truth into `dev_md_guides/`
+
+### AST & Code Modifications
+- **File**: `tests/test_compactor.py` (python)
+  - *Classes*: TestCompactorEngine (methods: test_catalog_parsing_formats(), test_gitignore_creation_and_preservation(), test_fallback_sample_content(), test_utf8_bom_and_complex_urls(), test_credentials_catalog_parsing(), test_secret_scanner_detection_and_placeholders(), test_scan_guides_for_secrets_skips_gitignored(), test_credential_commit_warning_generation(), test_end_to_end_compaction_flow(), test_edge_cases_scanner_and_catalogs(), test_secret_scanner_false_negative_resistance_near_example_words(), test_extended_database_uris_and_private_keys(), test_git_tracked_credentials_detection_and_security_check(), test_gitignore_root_and_nested_output_formatting(), test_new_architecture_templates_and_fallbacks(), test_dynamic_discovery_and_inventory_generation(), test_gotchas_and_workflows_counting(), test_report_with_inventory_gotchas_and_workflows(), test_count_gotchas_robustness_and_section_fallback(), test_count_workflows_unnumbered_headings(), test_seed_static_templates_inferred_root(), test_agent_md_inventory_self_consistent_line_count(), test_gather_context_sh_with_dynamic_topic_guide()) [line:12], TestInstallerScripts (methods: test_installer_files_exist_and_pure_ascii(), test_agent_memory_path_resolution_antigravity(), test_powershell_installer_dry_run_override()) [line:808]
+
+---
 ## [2026-09-28 11:18:52 UTC] — Branch `feat/dev-md-compactor` (HEAD: `f2c04cb`)
 - **Event**: Automated Context Compaction
 - **Operational Scope**: Synchronized repository ground-truth into `dev_md_guides/`

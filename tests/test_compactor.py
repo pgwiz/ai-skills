@@ -805,5 +805,59 @@ Commands...
             self.assertIn("Run migrations", res.stdout)
 
 
+class TestInstallerScripts(unittest.TestCase):
+    def test_installer_files_exist_and_pure_ascii(self):
+        repo_root = Path(__file__).resolve().parent.parent
+        install_dir = repo_root / "install"
+        ps1_file = install_dir / "install.ps1"
+        sh_file = install_dir / "install.sh"
+        md_file = install_dir / "INSTALL.md"
+
+        self.assertTrue(ps1_file.exists(), "install.ps1 must exist")
+        self.assertTrue(sh_file.exists(), "install.sh must exist")
+        self.assertTrue(md_file.exists(), "INSTALL.md must exist")
+
+        # Verify pure ASCII compliance for install.ps1 and install.sh
+        # to prevent Windows PowerShell 5.1 CP1252 parsing bugs
+        for script_file in [ps1_file, sh_file]:
+            raw_bytes = script_file.read_bytes()
+            non_ascii = [b for b in raw_bytes if b > 127]
+            self.assertEqual(len(non_ascii), 0, f"{script_file.name} contains non-ASCII bytes: {non_ascii[:5]}")
+
+    def test_agent_memory_path_resolution_antigravity(self):
+        repo_root = Path(__file__).resolve().parent.parent
+        skill_md = repo_root / "agent-memory" / "SKILL.md"
+        self.assertTrue(skill_md.exists())
+        content = skill_md.read_text(encoding="utf-8")
+        self.assertIn(".gemini/config/skills/agent-memory/.agent-config", content)
+        self.assertIn("AGENT_SYSTEM_PATH", content)
+
+    def test_powershell_installer_dry_run_override(self):
+        # Verify install.ps1 runs with -SkillFolderOverride in a temp directory
+        ps_cmd = shutil.which("powershell.exe") or shutil.which("pwsh")
+        if not ps_cmd:
+            self.skipTest("PowerShell not available")
+
+        repo_root = Path(__file__).resolve().parent.parent
+        ps1_file = repo_root / "install" / "install.ps1"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dest_dir = Path(tmpdir) / "skills"
+            cmd = [
+                ps_cmd,
+                "-ExecutionPolicy", "Bypass",
+                "-File", str(ps1_file),
+                "-SkillFolderOverride", str(dest_dir),
+                "-Skill", "all",
+                "-Yes"
+            ]
+            res = subprocess.run(cmd, cwd=str(repo_root), capture_output=True, text=True, errors="replace")
+            self.assertEqual(res.returncode, 0, f"install.ps1 failed: {res.stderr}\n{res.stdout}")
+            self.assertTrue((dest_dir / "agent-memory" / "SKILL.md").exists(), "agent-memory SKILL.md not installed")
+            self.assertTrue((dest_dir / "dev-md-compactor" / "SKILL.md").exists(), "dev-md-compactor SKILL.md not installed")
+            self.assertTrue((dest_dir / "dev-md-compactor" / "scripts" / "run_compactor.py").exists(), "run_compactor.py not installed")
+
+
 if __name__ == "__main__":
     unittest.main()
+
