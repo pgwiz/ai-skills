@@ -44,6 +44,13 @@ Do **not** read every markdown guide in `dev_md_guides/` at once. Follow **progr
    - **Context Token Saturation**: Proactively compact when approaching context limits (~60–80% utilization) to persist state into living guides.
    - **Execution Command**: Run `python dev-md-compactor/scripts/run_compactor.py` (or `bash dev-md-compactor/scripts/gather_context.sh .`).
 
+4. **Strict Grounding & Anti-Hallucination Audit Protocol**
+   - **Report ONLY What Actually Exists Today**: When auditing, exploring, or describing code, report exclusively what is confirmed in active source files on disk today.
+   - **Zero Unverified Assumptions**: Never infer or speculate that a route, controller, service, model, or database table exists simply because a framework conventionally includes it.
+   - **Explicit Negative Evidence ("NOT FOUND")**: If an implementation, route, helper, or configuration cannot be located on disk after searching, explicitly report `"NOT FOUND"` instead of guessing or inventing boilerplate.
+   - **Mandatory File & Symbol Citations**: For every claim, capability, or architectural statement, cite the exact relative file path and function/class/route name (`path/to/file.ext#symbol_or_route`).
+   - **Read-Only Audit Mode**: In audit or inspection tasks, make zero code modifications, stage no changes, and execute zero mutative commands.
+
 ---
 
 ## 3. Conversational Reflection & Operational Knowledge Capture

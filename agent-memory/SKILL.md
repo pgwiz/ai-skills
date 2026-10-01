@@ -64,6 +64,13 @@ Never default to any hardcoded username.
 - Never use destructive commands without explicit confirmation.
 - Patch memory files surgically; do not rewrite full history/log files.
 
+## ANTI-HALLUCINATION & AUDIT RULES
+- Report ONLY what actually exists on disk; never assume framework defaults.
+- If a route, function, or file is missing, explicitly report "NOT FOUND" instead of guessing.
+- For every architectural or code claim, cite exact file paths and function/route names (`path/to/file.ext#symbol`).
+- Audits and explorations are strictly read-only (zero file modifications).
+
+
 ## REFERENCE FILES
 Load on demand:
 - `references/GLOBAL_PROTOCOL.md`

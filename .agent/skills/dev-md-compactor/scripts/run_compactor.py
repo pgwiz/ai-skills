@@ -1111,7 +1111,8 @@ def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir
                     "## 2. Inviolable Core Ground Rules\n"
                     "1. **Zero Hardcoded Endpoints**: Reference `dev_md_guides/directory.md`.\n"
                     "2. **Zero Credential Exposure**: Real secrets in `dev_md_guides/credentials.md` (gitignored). Never commit secrets.\n"
-                    "3. **Proactive Context Compaction Triggers**: Automatically compact at task completion boundaries.\n",
+                    "3. **Proactive Context Compaction Triggers**: Automatically compact at task completion boundaries.\n"
+                    "4. **Strict Grounding & Anti-Hallucination Protocol**: Report ONLY verified code on disk; state 'NOT FOUND' instead of guessing; cite file paths and symbol names.\n",
                     encoding="utf-8",
                 )
 

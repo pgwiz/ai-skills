@@ -97,3 +97,24 @@ When modifying core skills (`dev-md-compactor`, `agent-memory`), propagate chang
 # Run test suite to verify all locations pass:
 python -m unittest discover tests
 ```
+
+---
+
+## 5. Codebase Audit & Anti-Hallucination Inspection Flow
+
+Follow this protocol when auditing or inspecting an existing codebase to prevent model hallucinations:
+
+1. **Non-Mutative Discovery**:
+   - Inspect existing manifests, directories, and route files via read-only tools (`find`, `git status`, `grep`).
+   - Touch zero source files; stage zero commits; execute zero mutative commands.
+2. **Ground-Truth Source Verification**:
+   - For every feature, route, or model investigated, locate the physical file on disk.
+   - Extract the exact file path and function/symbol definition (e.g. `src/services/order.ts#createOrder`).
+3. **Negative Evidence Assertion ("NOT FOUND")**:
+   - If an endpoint, helper, or configuration does not exist in code, explicitly report **`NOT FOUND`**.
+   - Never speculate, invent boilerplate, or assume framework defaults exist.
+4. **Structured Grounded Reporting**:
+   - Present every finding with exact citations:
+     - **Confirmed Active**: `[Capability]` → `path/to/file.ext#function_or_route`
+     - **Missing / Unimplemented**: `[Capability]` → `NOT FOUND`
+

@@ -45,6 +45,8 @@ _Durable knowledge — decisions, gotchas, conventions. Not a log._
 - Zero Credential Exposure: Never commit `dev_md_guides/credentials.md` or live secrets to GitHub. Always verify `.gitignore` ignores `credentials.md` and whitelists `!credentials.md.sample`.
 - Mandatory Warning on Credential Commits: If asked to commit secrets, warn the user explicitly about security risks and require confirmation before proceeding.
 - Credential Security Guard: Actively verify via `git ls-files` that `credentials.md` is never tracked in git history or index, even when the active working tree appears clean.
+- Strict Anti-Hallucination Audit Protocol: When auditing codebases, report only what actually exists on disk today. Never assume framework defaults. If code is missing, explicitly report "NOT FOUND" instead of guessing. For every claim, cite the exact file path and function/route name. Perform audits in read-only mode.
+
 
 ## Dead ends
 - Monolithic memory-bank reads on every prompt turn: abandoned due to severe context window consumption (>5,000 tokens per turn).

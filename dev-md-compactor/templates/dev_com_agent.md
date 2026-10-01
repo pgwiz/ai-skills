@@ -29,3 +29,5 @@
 1. **Zero Hardcoded Directories & Endpoints**: Reference all paths/servers via `dev_md_guides/directory.md`.
 2. **Zero Credential Exposure**: Never commit credentials.md or live secrets to git. Real secrets remain strictly local and gitignored. Issue explicit warning before any secret commits.
 3. **Proactive Context Compaction Triggers**: Automatically trigger compaction at task completion boundaries.
+4. **Strict Grounding & Anti-Hallucination Audit Protocol**: When auditing or exploring code, report ONLY what ACTUALLY exists on disk today. Never assume framework defaults. If an element cannot be found, explicitly state "NOT FOUND" instead of guessing. For every claim, cite the exact file path and function/route name (`path/to/file.ext#symbol`). Perform audits in read-only mode.
+

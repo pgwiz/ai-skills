@@ -34,6 +34,12 @@ Turns an interactive coding session into durable, structured repository memory i
 4. **Zero Credential Exposure & User Warning Protocol:**
    - Real credentials, private keys, database passwords, and API tokens must NEVER be committed to GitHub or exposed in git-tracked living guides. Active secrets reside exclusively in `credentials.md` (which MUST be gitignored). Only sanitized `credentials.md.sample` is committed.
    - If the user ever specifies or requests committing `credentials.md` or any unredacted secrets to git/GitHub, the agent MUST NEVER execute this action without first explicitly warning the user about the critical security risks (credential theft, permanent git history pollution, unauthorized cloud access, data compromise) and requiring explicit user confirmation.
+5. **Strict Grounding & Anti-Hallucination Audit Protocol:**
+   - When auditing, exploring, or reporting on an existing codebase, report ONLY what ACTUALLY exists in source code on disk today.
+   - Never assume or infer routes, services, models, or tables from framework conventions or standard patterns.
+   - If an implementation, route, or configuration cannot be located on disk, explicitly state **`"NOT FOUND"`**—never guess or invent boilerplate.
+   - For every claim or architectural finding, cite the exact relative file path and function/symbol/route name (`path/to/file.ext#symbol_or_route`).
+   - Audit and discovery tasks must be performed in read-only mode (zero file modifications, zero staged changes).
 
 ---
 

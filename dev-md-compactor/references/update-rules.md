@@ -11,7 +11,7 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 **Rules:**
 1. Maintain at the repository root worktree.
 2. Link directly to `dev_md_guides/agent.md` as the master index.
-3. Establish the core ground rules: zero hardcoded directories/endpoints, zero credential exposure (with mandatory security warning protocol), and proactive compaction triggers.
+3. Establish the core ground rules: zero hardcoded directories/endpoints, zero credential exposure (with mandatory security warning protocol), proactive compaction triggers, and the strict anti-hallucination audit protocol (cite exact paths/symbols, report 'NOT FOUND' instead of guessing, read-only mode).
 4. Keep concise and structural. Never duplicate deep code details or historical logs.
 
 **Size Limit:** ~40 lines.

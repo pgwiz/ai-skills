@@ -62,6 +62,17 @@ Do NOT ask "should I start?" — just confirm and start.
 - If you discover you need to touch an unlisted file → STOP and confirm with {AGENT_USER} first
 - Never refactor code outside the task scope, even if it looks messy
 
+### Codebase Auditing & Anti-Hallucination — HARD RULE
+When tasked with auditing, exploring, or reporting on an existing codebase:
+```
+✅ ALWAYS report ONLY what ACTUALLY exists on disk today
+✅ ALWAYS cite the exact file path and function/symbol/route name (e.g. path/to/file.ext#function_name)
+✅ ALWAYS state "NOT FOUND" if a feature, route, model, or configuration cannot be located on disk
+❌ NEVER assume or infer features exist based on framework conventions
+❌ NEVER guess or invent boilerplate implementation details
+❌ NEVER modify source code or run mutative commands during an audit task
+```
+
 ### File Writing — CRITICAL
 ```
 ✅ ALWAYS use Write File / Artifact tool for source code

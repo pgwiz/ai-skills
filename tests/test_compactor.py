@@ -857,7 +857,39 @@ class TestInstallerScripts(unittest.TestCase):
             self.assertTrue((dest_dir / "dev-md-compactor" / "SKILL.md").exists(), "dev-md-compactor SKILL.md not installed")
             self.assertTrue((dest_dir / "dev-md-compactor" / "scripts" / "run_compactor.py").exists(), "run_compactor.py not installed")
 
+    def test_anti_hallucination_protocol_constraints(self):
+        repo_root = Path(__file__).resolve().parent.parent
+
+        # 1. Root router
+        dev_com_path = repo_root / "dev_com_agent.md"
+        self.assertTrue(dev_com_path.exists())
+        dev_com_content = dev_com_path.read_text(encoding="utf-8")
+        self.assertIn("Strict Grounding & Anti-Hallucination", dev_com_content)
+        self.assertIn("NOT FOUND", dev_com_content)
+
+        # 2. dev-md-compactor skill
+        compactor_skill_path = repo_root / "dev-md-compactor" / "SKILL.md"
+        self.assertTrue(compactor_skill_path.exists())
+        compactor_content = compactor_skill_path.read_text(encoding="utf-8")
+        self.assertIn("Strict Grounding & Anti-Hallucination", compactor_content)
+        self.assertIn("NOT FOUND", compactor_content)
+
+        # 3. agent-memory GLOBAL_PROTOCOL
+        protocol_path = repo_root / "agent-memory" / "references" / "GLOBAL_PROTOCOL.md"
+        self.assertTrue(protocol_path.exists())
+        protocol_content = protocol_path.read_text(encoding="utf-8")
+        self.assertIn("Anti-Hallucination", protocol_content)
+        self.assertIn("NOT FOUND", protocol_content)
+
+        # 4. agent-memory SKILL.md
+        mem_skill_path = repo_root / "agent-memory" / "SKILL.md"
+        self.assertTrue(mem_skill_path.exists())
+        mem_skill_content = mem_skill_path.read_text(encoding="utf-8")
+        self.assertIn("ANTI-HALLUCINATION", mem_skill_content)
+        self.assertIn("NOT FOUND", mem_skill_content)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
