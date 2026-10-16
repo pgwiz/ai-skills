@@ -14,12 +14,13 @@ Adhere to these structural markdown formats to guarantee consistent, diff-friend
 
 ## 1. Master Context Router
 1. **Step 1: Read Master Index**: [`dev_md_guides/agent.md`](dev_md_guides/agent.md)
-2. **Step 2: Read Targeted Guides**: `branch.md`, `features.md`, `structure.md`, `memory.md`, `gotchas.md`, `flow.md`
+2. **Step 2: Read Targeted Guides**: `branch.md`, `features.md`, `structure.md`, `memory.md`, `gotchas.md`, `flow.md`, `playbook.md`, `solution.md`
 
 ## 2. Inviolable Core Ground Rules
 1. **Zero Hardcoded Endpoints**: Reference `dev_md_guides/directory.md`.
 2. **Zero Credential Exposure**: Real secrets remain strictly local in `credentials.md` (gitignored). Never commit secrets.
-3. **Proactive Context Compaction Triggers**: Automatically compact at task completion boundaries.
+3. **Sensitive Local Overrides**: Private notes stay in `local.<filename>.md` / `local.agent.md` (gitignored).
+4. **Proactive Context Compaction Triggers**: Automatically compact at task completion boundaries.
 ```
 
 ---
@@ -42,11 +43,14 @@ Adhere to these structural markdown formats to guarantee consistent, diff-friend
 | [`memory.md`](memory.md) | Decisions & ADRs | Durable architecture decisions (ADRs) and system invariants. | ~300 lines |
 | [`gotchas.md`](gotchas.md) | Failure Analysis | Categorized failure modes (Major Blockers vs. Minor Quirks), root causes, exact fixes. | ~300 lines |
 | [`flow.md`](flow.md) | Execution Flows | Procedural execution recipes, testing sequences, and git release pipelines. | ~250 lines |
+| [`playbook.md`](playbook.md) | Operational Playbooks | Standard framework setup runbooks, build recipes, and execution procedures. | ~300 lines |
+| [`solution.md`](solution.md) | Proven Solutions | Living catalog of empirical ground truths, parameter evolution ledgers, and verified fixes. | ~300 lines |
 | [`changelog.md`](changelog.md) | Operational Audit | Reverse-chronological append-only operational log recording compaction events. | ~500 lines |
 | [`directory.md`](directory.md) | Environment (Local) | Centralized catalog for workspace directories, dev servers, links, and ports. | ~100 lines |
 | [`directory.md.sample`](directory.md.sample) | Environment (Sample) | Committed reference catalog with sanitized example paths and endpoints. | ~100 lines |
 | [`credentials.md`](credentials.md) | Secrets (Local) | Local secrets catalog containing active credentials. Strictly gitignored. | ~100 lines |
 | [`credentials.md.sample`](credentials.md.sample) | Secrets (Sample) | Committed reference schema containing sanitized mock placeholders. | ~100 lines |
+| [`local.agent.md`](local.agent.md) | Local Overrides | Developer-specific private overrides and confidential team notes. Strictly gitignored. | ~100 lines |
 
 ## 2. Dynamic Topic Guides
 
@@ -245,6 +249,77 @@ git commit -m "feat: description"
 
 ---
 
+## `dev_md_guides/playbook.md`
+
+```markdown
+# Operational Playbooks & Framework Runbooks (`dev_md_guides/playbook.md`)
+
+_Battle-tested operational execution recipes, multi-step runbooks, and framework verification workflows._  
+_Maintained and updated in-place by the dev-md-compactor Conversational Reflection Protocol._
+
+## 1. Playbook Schema
+- **`PLAY-XXX: [Operational Objective]`**
+- **Category**: `Build & Packaging` | `Testing & QA` | `Deployment & Sync` | `Environment Setup` | `Recovery`
+- **Prerequisites**: Required CLI tools, environment variables (referenced from `directory.md`), permissions.
+- **Proven Step-by-Step Execution Sequence**: Exact commands with verified flags and parameters.
+- **Expected Verification Output**: Exact console outputs or health check responses confirming success.
+- **Failure Recovery & Rollback Protocol**: Exact steps if any step fails.
+- **Last Verified**: Date and environment tested.
+
+## 2. Active Operational Playbooks
+
+### PLAY-001: Universal Multi-Target Skill Installation & Verification
+- **Category**: `Deployment & Sync`
+- **Prerequisites**: Windows PowerShell (or pwsh 7+) on Windows, POSIX `/bin/sh` or bash on Linux/macOS.
+- **Execution Runbook**:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File .\install\install.ps1 -Target all -Skill all -Yes
+  ```
+- **Expected Verification Output**: `Install complete!` with green checkmarks.
+- **Failure Recovery**: If a syntax error occurs due to PowerShell CP1252 parsing, verify all scripts are strictly 7-bit ASCII.
+- **Last Verified**: 2026-10-02
+```
+
+---
+
+## `dev_md_guides/solution.md`
+
+```markdown
+# Validated Solutions & Empirical Truths (`dev_md_guides/solution.md`)
+
+_The living, mutable catalog of battle-tested problem resolutions, working implementations, and empirical ground truths._  
+_Maintained in-place by the dev-md-compactor Conversational Reflection Protocol._
+
+## 1. Solution Schema
+- **`SOL-XXX: [Descriptive Title]`**
+- **Status**: `Verified` | `Iterating` | `Superseded`
+- **Target Context**: Framework, language runtime, OS/platform, toolchain.
+- **Problem & Goal**: What specific capability or fix was needed.
+- **Evolution Ledger**:
+  1. *Baseline / Initial Attempt*: The first approach that worked partially or had edge cases.
+  2. *Refinements (Adding X + Y)*: The parameter adjustments, flags, timing, or wrapper logic that stabilized behavior.
+  3. *Latest Proven Truth (The Golden Formula)*: The exact code snippet, command invocation, or architectural pattern.
+- **What Did NOT Work (Anti-Patterns / Traps)**: Counter-examples, failed flags, broken configurations.
+- **Why It Works (Mechanics)**: The underlying technical reason this combination behaves predictably.
+- **Verification Evidence**: Automated test name, CLI exit code, or verification log.
+
+## 2. Active Solutions Directory
+
+### SOL-001: Robust UTF-8 Subprocess Execution on Windows Without CP1252 Crashes
+- **Status**: `Verified`
+- **Target Context**: Python 3.10+ CLI / Subprocess on Windows & POSIX
+- **Problem & Goal**: Execute external shell commands and capture stdout/stderr without crashing on multibyte chars.
+- **Evolution Ledger**:
+  1. *Baseline*: `subprocess.run(cmd, capture_output=True, text=True)` -> crashed with `UnicodeDecodeError` on CP1252.
+  2. *Refinement 1 (Adding X)*: Added `encoding="utf-8"` -> crashed on broken surrogate sequences.
+  3. *Latest Proven Truth (Adding X + Y)*: `subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")`.
+- **What Did NOT Work**: Running `chcp 65001` before each command (race conditions across concurrent workers).
+- **Why It Works (Mechanics)**: `encoding="utf-8"` forces standard multibyte decoding while `errors="replace"` safely substitutes unmappable bytes.
+- **Verification Evidence**: `test_run_command_utf8_env` in `tests/test_compactor.py`.
+```
+
+---
+
 ## `dev_md_guides/changelog.md`
 
 ```markdown
@@ -352,7 +427,34 @@ _All real values must remain strictly local in `credentials.md` (gitignored). NE
 ## 4. Deployment & Infrastructure Tokens
 - **Docker Registry Token**: `ENC[CONTAINER_REGISTRY_TOKEN]`
 - **Deploy SSH Private Key**: `~/.ssh/id_ed25519 (passphrase: REDACTED)`
-- **Cloud Service Account Key File**: `./secrets/gcp-sa-key.json (gitignored)`
+```
+
+---
+
+## `dev_md_guides/local.agent.md` & `local.*.md`
+
+```markdown
+# Local Private Agent Overrides (`local.agent.md`)
+
+_Developer-specific, confidential, and machine-local agent configuration._  
+_This file is strictly gitignored by default and must NEVER be committed to version control._
+
+> [!CAUTION]
+> **LOCAL PRIVATE FILE — NEVER COMMIT TO GITHUB**
+> - All `local.*.md` and `*.local.md` files (at root or in `dev_md_guides/`) are strictly ignored by `.gitignore`.
+> - Use this file for machine-specific instructions, private internal URLs, developer notes, personal sandbox configurations, or staging keys that must not be published to public repositories.
+
+## 1. Local Developer Preferences
+- **Developer Alias**: `[YOUR_NAME_OR_ALIAS]`
+- **Local Dev Workstation**: `[LOCAL_MACHINE_HOSTNAME]`
+- **Preferred Shell / Terminal**: `pwsh` / `bash` / `zsh`
+
+## 2. Machine-Specific Overrides
+- **Custom Local Test Database**: `postgresql://localhost:5432/my_dev_db`
+- **Private Staging Gateway**: `https://staging-internal.example.com`
+
+## 3. Ephemeral Scratchpad Notes
+_Active scratchpad notes during complex multi-step refactoring sessions._
 ```
 
 ---

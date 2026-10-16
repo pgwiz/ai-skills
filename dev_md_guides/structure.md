@@ -1,5 +1,5 @@
 # Codebase Architecture & Directory Dependency Graph
-_Last regenerated: 2026-10-01 15:43:54 UTC by dev-md-compactor_
+_Last regenerated: 2026-10-14 17:15:54 UTC by dev-md-compactor_
 
 ## Project Manifests & Build Tools
 - *(No standard build manifests detected at root)*
@@ -23,7 +23,7 @@ _Last regenerated: 2026-10-01 15:43:54 UTC by dev-md-compactor_
 - **Discovered Module Dependencies**: `argparse, ast, datetime, os, pathlib, re, subprocess, sys`
 
 ### `dev-md-compactor/templates/`
-- **Files (15)**: `agent.md, branch.md, changelog.md, commands.md, credentials.md, credentials.md.sample, dev_com_agent.md, directory.md` (+7 more)
+- **Files (18)**: `agent.md, branch.md, changelog.md, commands.md, credentials.md, credentials.md.sample, dev_com_agent.md, directory.md` (+10 more)
 
 ### `install/`
 - **Files (3)**: `INSTALL.md, install.ps1, install.sh`

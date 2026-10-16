@@ -14,9 +14,12 @@ A specialized context compactor and living documentation engine. Transforms conv
 - `memory.md` — Durable Architecture Decision Records (ADRs) and immutable system invariants.
 - `gotchas.md` — Categorized failure mode analysis (Major Blockers vs. Minor Quirks), root causes, exact fixes, and fix mechanics.
 - `flow.md` — Procedural execution flows, test sequences, context compaction protocols, and git release pipelines.
+- `playbook.md` — Standard operational playbooks, framework setup recipes, and execution runbooks (with prerequisites and rollback protocols).
+- `solution.md` — Living catalog of proven solutions, empirical ground truths, parameter evolution ledgers (Baseline -> Added parameters X + Y -> Latest Proven Truth), and what failed.
 - `changelog.md` — Append-only chronological audit log of operational runs and modified AST symbols.
 - `directory.md` & `directory.md.sample` — Centralized environment and routing catalog (servers, backend/frontend links, project directories). Prevents hardcoded paths and protects private endpoints by committing only `directory.md.sample` to GitHub.
 - `credentials.md` & `credentials.md.sample` — Centralized secrets schema. Real credentials remain strictly local in gitignored `credentials.md`; only `credentials.md.sample` with mock placeholders is committed. Includes automated secret leak scanning and a mandatory warning protocol if secret commits are ever attempted.
+- `local.agent.md` & `local.*.md` — Local private overrides and sensitive team notes (strictly gitignored, never committed).
 - **Dynamic Topic Guides** (e.g. `commands.md`, `mcp.md`) — Spawned dynamically when recurring CLI patterns or MCP tool quirks emerge.
 
 Backed by in-depth research: see [research/Agent Memory Compaction Research.md](research/Agent%20Memory%20Compaction%20Research.md).

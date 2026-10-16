@@ -103,6 +103,12 @@ if [ -d "dev_md_guides" ]; then
   if [ -f "dev_md_guides/flow.md" ]; then
     echo "--- flow.md (procedural recipes detected) ---"
   fi
+  if [ -f "dev_md_guides/playbook.md" ]; then
+    echo "--- playbook.md (operational runbooks detected) ---"
+  fi
+  if [ -f "dev_md_guides/solution.md" ]; then
+    echo "--- solution.md (validated solutions detected) ---"
+  fi
   if [ -f "dev_md_guides/directory.md" ]; then
     echo "--- directory.md (local active catalog detected) ---"
   elif [ -f "dev_md_guides/directory.md.sample" ]; then
@@ -113,12 +119,15 @@ if [ -d "dev_md_guides" ]; then
   elif [ -f "dev_md_guides/credentials.md.sample" ]; then
     echo "--- credentials.md.sample (template sample detected) ---"
   fi
+  if [ -f "dev_md_guides/local.agent.md" ]; then
+    echo "--- local.agent.md (local private override detected) ---"
+  fi
   # Detect and report dynamic topic guides
   for df in dev_md_guides/*.md; do
     [ -f "$df" ] || continue
     base=$(basename "$df")
     case "$base" in
-      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|directory.md|credentials.md)
+      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|playbook.md|solution.md|directory.md|credentials.md|local.*|*.local.md)
         ;;
       *)
         echo "--- $base (dynamic topic guide detected: $(wc -l < "$df") lines) ---"
@@ -139,6 +148,26 @@ elif [ -f "dev_com_agent.md" ]; then
 else
   echo "(no agent master index found)"
 fi
+if [ -f "dev_md_guides/local.agent.md" ]; then
+  echo ""
+  echo "--- (local.agent.md private override active) ---"
+fi
+
+# ---------------------------------------------------------------------------
+hr "OPERATIONAL PLAYBOOKS (dev_md_guides/playbook.md)"
+if [ -f "dev_md_guides/playbook.md" ]; then
+  cat "dev_md_guides/playbook.md"
+else
+  echo "(no playbook.md found in dev_md_guides/)"
+fi
+
+# ---------------------------------------------------------------------------
+hr "VALIDATED SOLUTIONS & EMPIRICAL TRUTHS (dev_md_guides/solution.md)"
+if [ -f "dev_md_guides/solution.md" ]; then
+  cat "dev_md_guides/solution.md"
+else
+  echo "(no solution.md found in dev_md_guides/)"
+fi
 
 # ---------------------------------------------------------------------------
 hr "DYNAMIC TOPIC GUIDES (if present)"
@@ -148,7 +177,7 @@ if [ -d "dev_md_guides" ]; then
     [ -f "$df" ] || continue
     base=$(basename "$df")
     case "$base" in
-      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|directory.md|credentials.md)
+      agent.md|branch.md|structure.md|changelog.md|features.md|memory.md|gotchas.md|flow.md|playbook.md|solution.md|directory.md|credentials.md|local.*|*.local.md)
         ;;
       *)
         DYNAMIC_FOUND=1
@@ -200,6 +229,13 @@ elif git status --porcelain dev_md_guides/credentials.md 2>/dev/null | grep -q '
   echo "Ensure dev_md_guides/credentials.md is added to .gitignore immediately."
 else
   echo "OK: dev_md_guides/credentials.md is safely gitignored and not tracked in git worktree."
+fi
+
+TRACKED_LOCALS=$(git ls-files '*local*.md' 'dev_md_guides/*local*.md' 2>/dev/null | grep -E '(^|/)local\..*\.md$|\.local\.md$' || true)
+if [ -n "$TRACKED_LOCALS" ]; then
+  echo "CRITICAL SECURITY WARNING: Local sensitive override(s) tracked in git index/history:"
+  echo "$TRACKED_LOCALS"
+  echo "Immediately run: git rm --cached <file>"
 fi
 
 hr "DONE"

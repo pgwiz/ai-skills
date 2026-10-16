@@ -134,6 +134,48 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 
 ---
 
+## `dev_md_guides/playbook.md` — Operational Runbooks & Framework Execution Recipes
+
+**Principle:** Concrete, tested, and repeatable operational runbooks for complex development procedures, framework workflows, deployment routines, and environment resets. Unlike high-level workflows in `flow.md`, playbooks provide complete step-by-step commands, prerequisites, expected outputs, and rollback protocols.
+
+**Rules:**
+1. Index every runbook with a unique identifier (`PLAY-001`, `PLAY-002`, etc.) in the Master Playbook Index.
+2. Group entries into operational categories: Development & Build, Testing & Quality, Deployment & Migration, Troubleshooting & Recovery.
+3. Every playbook MUST define:
+   - **Prerequisites & Environment**: Required tools, env vars, permissions.
+   - **Step-by-Step Execution**: Exact shell commands, configuration snippets, and expected outcomes.
+   - **Rollback / Recovery Protocol**: Exact steps to abort and restore clean state if any step fails.
+   - **Verification / Done Criteria**: How to empirically verify success.
+4. When a procedure is refined or extended, update the existing playbook entry rather than creating duplicates.
+
+**Size Limit:** ~300 lines. When approaching limit, extract domain-specific runbooks into dynamic guides.
+
+---
+
+## `dev_md_guides/solution.md` — Living Catalog of Validated Resolutions & Empirical Ground Truths
+
+**Principle:** Empirical repository ground truth of what ACTUALLY worked when resolving complex bugs, edge cases, framework integrations, and command chains. Captures the iterative evolution of solutions: baseline attempt -> refined approach with added parameters (X + Y) -> latest proven truth, alongside negative evidence of what did NOT work.
+
+**Rules:**
+1. Index every proven solution with a unique identifier (`SOL-001`, `SOL-002`, etc.) in the Master Solutions Index.
+2. Maintain standard fields for each entry:
+   - **Status**: Verified / Superseded / Deprecated.
+   - **Target Context & Stack**: Operating system, runtime, framework versions.
+   - **Problem & Failure Signature**: Exact error or symptom encountered.
+   - **Evolution Ledger**: Document the progression:
+     * *Baseline Attempt*: Initial approach and why it was insufficient.
+     * *Refinements (Adding X + Y)*: Iterative parameter additions or flag adjustments.
+     * *Latest Proven Truth*: The exact combination that works reliably today.
+   - **What Did NOT Work**: Counter-examples, failed flags, broken configurations, and why they failed.
+   - **Mechanics**: Technical explanation of why the latest solution works.
+   - **Verification Evidence**: Command output or test result confirming resolution.
+3. **Mutability Rule**: When a subsequent iteration uncovers a more robust truth or additional required parameters, update the entry's Evolution Ledger and Latest Proven Truth rather than appending duplicate entries.
+4. Never delete an entry silently; mark as `Superseded by SOL-XXX` if replaced.
+
+**Size Limit:** ~300 lines.
+
+---
+
 ## `dev_md_guides/changelog.md` — Append-Only, Reverse Chronological
 
 **Principle:** The deterministic ground truth of operational session history. Every other document can be reconstructed or reconciled against this audit trail. Past entries must never be edited, deleted, or reordered.
@@ -141,7 +183,7 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
 **Rules:**
 1. Prepend or append new timestamped entries for each operational run (newest first).
 2. Record trigger event, active branch, HEAD commit, AST code modifications (modified functions, classes, line numbers), and executed terminal commands with exit codes.
-3. Reference `memory.md` for architectural reasoning and `gotchas.md` for error resolution rather than duplicating verbose discussion.
+3. Reference `memory.md` for architectural reasoning, `gotchas.md` for error resolution, and `solution.md` for verified fixes rather than duplicating verbose discussion.
 4. Never log unredacted secret values or live credentials into changelog entries.
 
 **Size Limit & Archiving:** When the file exceeds ~500 lines, extract entries older than the latest milestone into `dev_md_guides/archive/changelog-<date-range>.md` and leave a one-line link at the bottom. Never delete historical entries.
@@ -176,6 +218,21 @@ Follow these strict semantics on every compaction pass. These rules prevent docu
    - Requirement for explicit user confirmation before any `git add` or `git commit` involving credentials can proceed.
 4. Run the deterministic credential scanner (`run_compactor.py`) on living guides to catch accidental secret exposure before pushing.
 5. Never log unredacted secret values in `changelog.md` or output them to standard execution logs.
+
+**Size Limit:** ~100 lines.
+
+---
+
+## `dev_md_guides/local.agent.md` & `local.*.md` — Local Private Overrides & Sensitive Team Notes
+
+**Principle:** Developers frequently have machine-specific tokens, private notes, confidential team conventions, or experimental agent instructions that should not be committed to GitHub or shared upstream.
+
+**Rules:**
+1. Any file matching `local.*.md` or `*.local.md` is strictly gitignored by default.
+2. Use `local.agent.md` as the local counterpart to `agent.md` for private developer instructions or uncommitted notes.
+3. Use `local.<filename>.md` (e.g., `local.memory.md`) for sensitive architecture notes.
+4. Agents should check for the presence of local overrides and merge their context into runtime reasoning.
+5. Never track, stage, or push `local.*.md` files to version control.
 
 **Size Limit:** ~100 lines.
 

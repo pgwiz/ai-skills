@@ -221,12 +221,26 @@ def is_credentials_file_tracked(root_dir: Path, guides_dir: Path) -> bool:
         return False
 
 
+def is_file_git_tracked(root_dir: Path, file_path: Path) -> bool:
+    """Checks whether a specific file is tracked in Git (index or committed tree)."""
+    try:
+        try:
+            rel_path = file_path.relative_to(root_dir).as_posix()
+        except ValueError:
+            rel_path = file_path.name
+        res = run_cmd(["git", "ls-files", rel_path], cwd=root_dir)
+        return bool(res and rel_path in res)
+    except Exception:
+        return False
+
+
 def check_credentials_security(root_dir: Path, guides_dir: Path) -> dict:
     """
-    Performs comprehensive security inspection for credentials.md:
+    Performs comprehensive security inspection for credentials.md and local sensitive overrides:
     1. Checks if credentials.md is tracked in git index or committed tree.
-    2. Checks if credentials.md is staged or unignored in working tree.
-    3. Returns alert details and recommended remediation.
+    2. Checks if local.*.md or *.local.md private files are tracked in git.
+    3. Checks if credentials.md is staged or unignored in working tree.
+    4. Returns alert details and recommended remediation.
     """
     try:
         try:
@@ -240,6 +254,17 @@ def check_credentials_security(root_dir: Path, guides_dir: Path) -> dict:
     is_tracked = is_credentials_file_tracked(root_dir, guides_dir)
     if is_tracked:
         issues.append(f"CRITICAL: '{rel_cred}' is tracked in git repository!")
+
+    # Check for any tracked local.*.md or *.local.md sensitive files in repository
+    try:
+        tracked_locals = run_cmd(["git", "ls-files", "*local*.md"], cwd=root_dir).splitlines()
+        for tl in tracked_locals:
+            tl = tl.strip()
+            if tl and (tl.startswith("local.") or tl.endswith(".local.md") or "/local." in tl or ".local.md" in tl):
+                is_tracked = True
+                issues.append(f"CRITICAL: Local sensitive override '{tl}' is tracked in git! Run: git rm --cached {tl}")
+    except Exception:
+        pass
 
     # Check git status for staged or uncommitted exposure
     status_raw = run_cmd(["git", "status", "--porcelain"], cwd=root_dir)
@@ -277,8 +302,8 @@ def scan_guides_for_secrets(
 ) -> dict[str, list[dict[str, str | int]]]:
     """
     Scans living guides in dev_md_guides/ for accidental secret leaks.
-    By default skips gitignored files (directory.md and credentials.md),
-    UNLESS credentials.md is accidentally tracked in Git.
+    By default skips gitignored files (directory.md, credentials.md, and local.*.md),
+    UNLESS they are accidentally tracked in Git.
     """
     results: dict[str, list[dict[str, str | int]]] = {}
     if not guides_dir.exists() or not guides_dir.is_dir():
@@ -290,8 +315,15 @@ def scan_guides_for_secrets(
         ignored_filenames.discard("credentials.md")
 
     for item in guides_dir.glob("*.md*"):
-        if item.name in ignored_filenames:
-            continue
+        name = item.name
+        is_local_override = name.startswith("local.") or name.endswith(".local.md")
+        if not include_gitignored:
+            if name in ignored_filenames or is_local_override:
+                # If root_dir provided and file is accidentally tracked in git, do NOT skip scanning!
+                if root_dir and (is_file_git_tracked(root_dir, item) or (name == "credentials.md" and is_credentials_file_tracked(root_dir, guides_dir))):
+                    pass
+                else:
+                    continue
         leaks = scan_file_for_secrets(item)
         if leaks:
             results[item.name] = leaks
@@ -751,6 +783,49 @@ def ensure_credentials_gitignored(root_dir: Path, guides_dir: Path) -> None:
             else:
                 new_content = block
             gitignore_path.write_text(new_content, encoding="utf-8")
+
+        # Also ensure local overrides are gitignored
+        ensure_local_overrides_gitignored(root_dir, guides_dir)
+    except Exception:
+        pass
+
+
+def ensure_local_overrides_gitignored(root_dir: Path, guides_dir: Path) -> None:
+    """Ensures local.*.md and *.local.md patterns are added to .gitignore so sensitive local overrides aren't committed."""
+    gitignore_path = root_dir / ".gitignore"
+
+    try:
+        try:
+            rel_guides = guides_dir.relative_to(root_dir).as_posix()
+        except ValueError:
+            rel_guides = guides_dir.name
+
+        patterns = [
+            "/local.*.md",
+            "/*.local.md",
+        ]
+        if rel_guides != ".":
+            patterns.extend([
+                f"{rel_guides}/local.*.md",
+                f"{rel_guides}/*.local.md",
+            ])
+
+        content = ""
+        lines = []
+        if gitignore_path.exists():
+            content = gitignore_path.read_text(encoding="utf-8", errors="replace")
+            lines = [line.strip() for line in content.splitlines()]
+        elif not (root_dir / ".git").exists() and not any(root_dir.glob(".git*")):
+            return
+
+        needed = [p for p in patterns if p not in lines and f"/{p}" not in lines]
+        if needed:
+            block = "# Local private guide overrides and sensitive documentation (never commit)\n" + "\n".join(needed) + "\n"
+            if content.strip():
+                new_content = content.rstrip() + "\n\n" + block
+            else:
+                new_content = block
+            gitignore_path.write_text(new_content, encoding="utf-8")
     except Exception:
         pass
 
@@ -944,9 +1019,12 @@ GUIDE_CATEGORIES = {
     "flow.md": "Execution Flows",
     "gotchas.md": "Failure Modes",
     "memory.md": "Decisions & ADRs",
+    "playbook.md": "Operational Playbooks",
+    "solution.md": "Proven Solutions",
     "structure.md": "Architecture",
     "commands.md": "Dynamic Topic",
     "mcp.md": "Dynamic Topic",
+    "local.agent.md": "Local Private Override",
 }
 
 
@@ -970,7 +1048,10 @@ def discover_guide_files(guides_dir: Path) -> list[dict]:
                 line_count = 0
 
             category = GUIDE_CATEGORIES.get(name, "Dynamic Topic")
-            if name in ("credentials.md", "directory.md"):
+            if name.startswith("local.") or name.endswith(".local.md"):
+                category = "Local Private Override"
+                status = "Gitignored"
+            elif name in ("credentials.md", "directory.md"):
                 status = "Gitignored"
             elif name.endswith(".sample"):
                 status = "Committed"
@@ -983,6 +1064,7 @@ def discover_guide_files(guides_dir: Path) -> list[dict]:
                 mtime = datetime.date.today().isoformat()
 
             files_info.append({
+                "name": name,
                 "filename": name,
                 "lines": line_count,
                 "category": category,
@@ -1087,6 +1169,43 @@ def count_workflows(guides_dir: Path) -> int:
         return 0
 
 
+def count_playbooks(guides_dir: Path) -> int:
+    """Counts documented operational playbooks in playbook.md."""
+    target = guides_dir / "playbook.md"
+    if not target.exists():
+        return 0
+    try:
+        content = target.read_text(encoding="utf-8", errors="replace")
+        play_headers = len(re.findall(r"^###\s+PLAY-", content, re.MULTILINE))
+        all_h3 = len(re.findall(r"^###\s+", content, re.MULTILINE))
+        return max(play_headers, all_h3)
+    except Exception:
+        return 0
+
+
+def count_solutions(guides_dir: Path) -> dict[str, int]:
+    """Counts validated solutions in solution.md."""
+    target = guides_dir / "solution.md"
+    if not target.exists():
+        return {"total": 0, "verified": 0, "iterating": 0, "superseded": 0}
+    try:
+        content = target.read_text(encoding="utf-8", errors="replace")
+        sol_headers = len(re.findall(r"^###\s+SOL-", content, re.MULTILINE))
+        all_h3 = len(re.findall(r"^###\s+", content, re.MULTILINE))
+        verified = len(re.findall(r"-\s*\*\*Status\*\*:\s*`?Verified`?", content, re.IGNORECASE))
+        iterating = len(re.findall(r"-\s*\*\*Status\*\*:\s*`?Iterating`?", content, re.IGNORECASE))
+        superseded = len(re.findall(r"-\s*\*\*Status\*\*:\s*`?Superseded`?", content, re.IGNORECASE))
+        total = max(sol_headers, all_h3, verified + iterating + superseded)
+        return {
+            "total": total,
+            "verified": verified,
+            "iterating": iterating,
+            "superseded": superseded,
+        }
+    except Exception:
+        return {"total": 0, "verified": 0, "iterating": 0, "superseded": 0}
+
+
 def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir: Path | None = None) -> None:
     """Seeds dev_com_agent.md (root) and living guides in dev_md_guides/ from templates if they do not exist."""
     # Infer root_dir if not explicitly passed
@@ -1107,12 +1226,13 @@ def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir
                     "> Follow progressive disclosure: read `dev_md_guides/agent.md` first.\n\n"
                     "## 1. Master Context Router\n"
                     "1. **Step 1: Read Master Index**: [`dev_md_guides/agent.md`](dev_md_guides/agent.md)\n"
-                    "2. **Step 2: Read Targeted Guides**: `branch.md`, `features.md`, `structure.md`, `memory.md`, `gotchas.md`, `flow.md`\n\n"
+                    "2. **Step 2: Read Targeted Guides**: `branch.md`, `features.md`, `structure.md`, `memory.md`, `gotchas.md`, `flow.md`, `playbook.md`, `solution.md`\n\n"
                     "## 2. Inviolable Core Ground Rules\n"
                     "1. **Zero Hardcoded Endpoints**: Reference `dev_md_guides/directory.md`.\n"
                     "2. **Zero Credential Exposure**: Real secrets in `dev_md_guides/credentials.md` (gitignored). Never commit secrets.\n"
-                    "3. **Proactive Context Compaction Triggers**: Automatically compact at task completion boundaries.\n"
-                    "4. **Strict Grounding & Anti-Hallucination Protocol**: Report ONLY verified code on disk; state 'NOT FOUND' instead of guessing; cite file paths and symbol names.\n",
+                    "3. **Local Sensitive Overrides Protocol (`local.<filename>.md`)**: Machine-specific and private notes are strictly gitignored.\n"
+                    "4. **Proactive Context Compaction Triggers**: Automatically compact at task completion boundaries.\n"
+                    "5. **Strict Grounding & Anti-Hallucination Protocol**: Report ONLY verified code on disk; state 'NOT FOUND' instead of guessing; cite file paths and symbol names.\n",
                     encoding="utf-8",
                 )
 
@@ -1136,6 +1256,8 @@ def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir
                 "| [`memory.md`](memory.md) | Decisions & ADRs | Durable architecture decisions (ADRs) and system invariants. | ~300 lines |\n"
                 "| [`gotchas.md`](gotchas.md) | Failure Analysis | Categorized failure modes (Major Blockers vs. Minor Quirks), root causes, exact fixes. | ~300 lines |\n"
                 "| [`flow.md`](flow.md) | Execution Flows | Procedural execution recipes, testing sequences, and git release pipelines. | ~250 lines |\n"
+                "| [`playbook.md`](playbook.md) | Operational Playbooks | Battle-tested operational runbooks, execution recipes, and framework pipelines. | ~250 lines |\n"
+                "| [`solution.md`](solution.md) | Proven Solutions | Mutable catalog of verified problem resolutions and latest empirical truths. | ~300 lines |\n"
                 "| [`changelog.md`](changelog.md) | Operational Audit | Reverse-chronological append-only operational log recording compaction events. | ~500 lines |\n"
                 "| [`directory.md`](directory.md) | Environment (Local) | Centralized catalog for workspace directories, dev servers, links, and ports. | ~100 lines |\n"
                 "| [`directory.md.sample`](directory.md.sample) | Environment (Sample) | Committed reference catalog with sanitized example paths and endpoints. | ~100 lines |\n"
@@ -1184,6 +1306,36 @@ def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir
                 "## 1. Test & Quality Gate Execution Flow\n\n"
                 "## 2. Context Compaction & Living Documentation Sync Flow\n\n"
                 "## 3. Git Branching, Secret Safety & PR Update Flow\n",
+                encoding="utf-8",
+            )
+
+    # 4. Seed dev_md_guides/playbook.md
+    playbook_path = guides_dir / "playbook.md"
+    if not playbook_path.exists():
+        template_playbook = templates_dir / "playbook.md" if templates_dir else None
+        if template_playbook and template_playbook.exists():
+            playbook_path.write_text(template_playbook.read_text(encoding="utf-8"), encoding="utf-8")
+        else:
+            playbook_path.write_text(
+                "# Operational Playbooks & Framework Runbooks (`dev_md_guides/playbook.md`)\n\n"
+                "_Battle-tested operational execution recipes, multi-step runbooks, and framework verification workflows._\n"
+                "_Maintained and updated in-place by the dev-md-compactor Conversational Reflection Protocol._\n\n"
+                "## 1. Active Operational Playbooks\n",
+                encoding="utf-8",
+            )
+
+    # 5. Seed dev_md_guides/solution.md
+    solution_path = guides_dir / "solution.md"
+    if not solution_path.exists():
+        template_solution = templates_dir / "solution.md" if templates_dir else None
+        if template_solution and template_solution.exists():
+            solution_path.write_text(template_solution.read_text(encoding="utf-8"), encoding="utf-8")
+        else:
+            solution_path.write_text(
+                "# Validated Solutions & Empirical Truths (`dev_md_guides/solution.md`)\n\n"
+                "_The living, mutable catalog of battle-tested problem resolutions, working implementations, and empirical ground truths._\n"
+                "_Maintained in-place by the dev-md-compactor Conversational Reflection Protocol._\n\n"
+                "## 1. Active Solutions Directory\n",
                 encoding="utf-8",
             )
 
@@ -1327,6 +1479,7 @@ def seed_static_templates(guides_dir: Path, templates_dir: Path | None, root_dir
     if root_dir:
         ensure_directory_gitignored(root_dir, guides_dir)
         ensure_credentials_gitignored(root_dir, guides_dir)
+        ensure_local_overrides_gitignored(root_dir, guides_dir)
 
 
 def print_report(
@@ -1341,6 +1494,8 @@ def print_report(
     guides_inventory: list[dict] | None = None,
     gotchas_counts: dict[str, int] | None = None,
     workflow_count: int | None = None,
+    playbook_count: int | None = None,
+    solutions_counts: dict[str, int] | None = None,
 ) -> None:
     """Prints plain-text context report for agent consumption."""
     print("=== PROJECT GROUND TRUTH REPORT ===")
@@ -1358,6 +1513,10 @@ def print_report(
         print(f"Gotchas Bank:  {gotchas_counts['total']} entries ({gotchas_counts['major']} major blockers, {gotchas_counts['minor']} minor quirks)")
     if workflow_count:
         print(f"Workflows:     {workflow_count} execution flows documented in flow.md")
+    if playbook_count:
+        print(f"Playbooks:     {playbook_count} operational runbooks in playbook.md")
+    if solutions_counts and solutions_counts.get("total", 0) > 0:
+        print(f"Solutions:     {solutions_counts['total']} proven solutions ({solutions_counts['verified']} verified) in solution.md")
     if catalog:
         print(f"Directory Map: {len(catalog)} environment/service entries resolved")
         if grouped_catalog:
@@ -1413,6 +1572,8 @@ def main():
     guides_inventory = discover_guide_files(guides_dir)
     gotchas_counts = count_gotchas(guides_dir)
     workflow_count = count_workflows(guides_dir)
+    playbook_count = count_playbooks(guides_dir)
+    solutions_counts = count_solutions(guides_dir)
 
     if args.report_only:
         print_report(
@@ -1427,6 +1588,8 @@ def main():
             guides_inventory=guides_inventory,
             gotchas_counts=gotchas_counts,
             workflow_count=workflow_count,
+            playbook_count=playbook_count,
+            solutions_counts=solutions_counts,
         )
         return
 
@@ -1446,7 +1609,7 @@ def main():
             print(f"  - {fname}:")
             for item in leak_list:
                 print(f"    * [{item['type']}] {item['snippet']}")
-        print("  Resolve these unredacted secrets before pushing to version control!")
+        print("  Resolve these unredacted secrets before pushing to version control! Tip: For machine-specific or sensitive notes, move them to 'local.<filename>.md' (e.g. 'dev_md_guides/local.agent.md') which is gitignored by default.")
 
     # Check credentials exposure and tracking in Git
     cred_sec = check_credentials_security(root_dir, guides_dir)
@@ -1456,7 +1619,7 @@ def main():
         for issue in cred_sec["issues"]:
             print(f"[SECURITY ALERT] {issue}")
 
-    print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (dev_com_agent.md, agent.md, branch.md, structure.md, changelog.md, features.md, memory.md, gotchas.md, flow.md, directory.md.sample, credentials.md.sample)")
+    print(f"[COMPACTOR] Successfully synchronized {guides_dir.name}/ (dev_com_agent.md, agent.md, branch.md, structure.md, changelog.md, features.md, memory.md, gotchas.md, flow.md, playbook.md, solution.md, directory.md.sample, credentials.md.sample)")
 
 
 if __name__ == "__main__":

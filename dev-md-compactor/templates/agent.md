@@ -15,11 +15,14 @@
 | [`memory.md`](memory.md) | Decisions & ADRs | Durable architecture decisions (ADRs), system invariants, conventions, and rejected alternatives. Append-only with explicit supersession. | ~300 lines |
 | [`gotchas.md`](gotchas.md) | Failure Analysis | Categorized failure modes (Major Blockers vs. Minor Quirks), symptom triggers, root causes, exact fixes, and fix mechanics. | ~300 lines |
 | [`flow.md`](flow.md) | Execution Flows | Procedural execution recipes, testing sequences, context compaction protocols, and git release pipelines. | ~250 lines |
+| [`playbook.md`](playbook.md) | Operational Playbooks | Battle-tested operational runbooks, execution recipes, and framework verification pipelines. | ~250 lines |
+| [`solution.md`](solution.md) | Proven Solutions | Mutable catalog of verified problem resolutions, parameter refinements (X + Y), and latest empirical truths. | ~300 lines |
 | [`changelog.md`](changelog.md) | Operational Audit | Reverse-chronological append-only operational log recording compaction events, AST symbol modifications, and git commit deltas. | ~500 lines |
 | [`directory.md`](directory.md) | Environment (Local) | Centralized catalog for workspace directories, dev servers, backend links, frontend links, and ports. Gitignored locally. | ~100 lines |
 | [`directory.md.sample`](directory.md.sample) | Environment (Sample) | Committed reference catalog with sanitized example paths and endpoints for version control. | ~100 lines |
 | [`credentials.md`](credentials.md) | Secrets (Local) | Local secrets catalog containing active API tokens and credentials. Strictly gitignored; never committed to GitHub. | ~100 lines |
 | [`credentials.md.sample`](credentials.md.sample) | Secrets (Sample) | Committed reference schema containing sanitized mock placeholders (e.g. `ENC[...]`, `sk-ant-SAMPLE`). | ~100 lines |
+| [`local.agent.md`](local.agent.md) | Private Override (Local) | Machine-specific and sensitive developer notes. Strictly gitignored locally. | ~100 lines |
 
 ---
 

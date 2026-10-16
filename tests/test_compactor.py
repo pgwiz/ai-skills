@@ -745,6 +745,8 @@ Commands...
             self.assertTrue((guides_dir / "agent.md").exists())
             self.assertTrue((guides_dir / "gotchas.md").exists())
             self.assertTrue((guides_dir / "flow.md").exists())
+            self.assertTrue((guides_dir / "playbook.md").exists())
+            self.assertTrue((guides_dir / "solution.md").exists())
 
     def test_agent_md_inventory_self_consistent_line_count(self):
         """Tests that agent.md's recorded line count inside its own inventory matches actual line count."""
@@ -803,6 +805,83 @@ Commands...
             self.assertIn("database.md (dynamic topic guide detected", res.stdout)
             self.assertIn("=== database.md ===", res.stdout)
             self.assertIn("Run migrations", res.stdout)
+
+    def test_count_playbooks(self):
+        """Tests parsing and counting playbook entries in playbook.md."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            guides_dir = Path(tmpdir)
+            playbook_file = guides_dir / "playbook.md"
+            playbook_file.write_text("""# Operational Playbooks
+### PLAY-001: Universal Multi-Target Installation
+- Steps...
+
+### PLAY-002: Regression Test Runbook
+- Steps...
+
+### Unnumbered Playbook: Database Reset
+- Steps...
+""", encoding="utf-8")
+            playbooks = run_compactor.count_playbooks(guides_dir)
+            self.assertEqual(playbooks, 3)
+
+    def test_count_solutions(self):
+        """Tests parsing and status categorization of solutions in solution.md."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            guides_dir = Path(tmpdir)
+            sol_file = guides_dir / "solution.md"
+            sol_file.write_text("""# Validated Solutions & Empirical Truths
+### SOL-001: UTF-8 Windows Subprocess Execution
+- **Status**: `Verified`
+- Evolution ledger...
+
+### SOL-002: Dynamic Port Allocation in CI
+- **Status**: `Iterating`
+- Evolution ledger...
+
+### SOL-003: Legacy Session Secret Hashing
+- **Status**: `Superseded`
+- Evolution ledger...
+
+### SOL-004: Fast JSON Parsing
+- **Status**: Verified
+- Evolution ledger...
+""", encoding="utf-8")
+            sol_counts = run_compactor.count_solutions(guides_dir)
+            self.assertEqual(sol_counts["verified"], 2)
+            self.assertEqual(sol_counts["iterating"], 1)
+            self.assertEqual(sol_counts["superseded"], 1)
+            self.assertEqual(sol_counts["total"], 4)
+
+    def test_local_overrides_gitignored_and_discovery(self):
+        """Tests that local overrides are properly gitignored and discovered in agent inventory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root_dir = Path(tmpdir)
+            guides_dir = root_dir / "dev_md_guides"
+            guides_dir.mkdir()
+            (root_dir / ".git").mkdir()
+
+            # Create local override files
+            (guides_dir / "local.agent.md").write_text("# Local Agent\n", encoding="utf-8")
+            (guides_dir / "local.memory.md").write_text("# Local Memory\n", encoding="utf-8")
+
+            # Run gitignore guard
+            run_compactor.ensure_local_overrides_gitignored(root_dir, guides_dir)
+
+            gitignore = (root_dir / ".gitignore").read_text(encoding="utf-8")
+            self.assertIn("local.*.md", gitignore)
+            self.assertIn("*.local.md", gitignore)
+            self.assertIn("dev_md_guides/local.*.md", gitignore)
+
+            # Discover guide files
+            discovered = run_compactor.discover_guide_files(guides_dir)
+            file_names = [d["name"] for d in discovered]
+            self.assertIn("local.agent.md", file_names)
+            self.assertIn("local.memory.md", file_names)
+
+            for d in discovered:
+                if d["name"] in ("local.agent.md", "local.memory.md"):
+                    self.assertEqual(d["category"], "Local Private Override")
+                    self.assertEqual(d["status"], "Gitignored")
 
 
 class TestInstallerScripts(unittest.TestCase):

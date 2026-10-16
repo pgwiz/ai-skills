@@ -17,6 +17,8 @@
    - **Decisions & Invariants**: [`dev_md_guides/memory.md`](dev_md_guides/memory.md)
    - **Failure Modes & Fixes**: [`dev_md_guides/gotchas.md`](dev_md_guides/gotchas.md)
    - **Execution Workflows**: [`dev_md_guides/flow.md`](dev_md_guides/flow.md)
+   - **Operational Playbooks**: [`dev_md_guides/playbook.md`](dev_md_guides/playbook.md) (reproducible framework runbooks & execution recipes)
+   - **Validated Solutions**: [`dev_md_guides/solution.md`](dev_md_guides/solution.md) (mutable catalog of verified problem resolutions & latest empirical truths)
    - **Environment Endpoints**: [`dev_md_guides/directory.md`](dev_md_guides/directory.md)
    - **Secrets & Credentials**: [`dev_md_guides/credentials.md.sample`](dev_md_guides/credentials.md.sample) / local [`dev_md_guides/credentials.md`](dev_md_guides/credentials.md)
    - **Operational Audit Log**: [`dev_md_guides/changelog.md`](dev_md_guides/changelog.md)
@@ -28,6 +30,7 @@
 
 1. **Zero Hardcoded Directories & Endpoints**: Reference all paths/servers via `dev_md_guides/directory.md`.
 2. **Zero Credential Exposure**: Never commit credentials.md or live secrets to git. Real secrets remain strictly local and gitignored. Issue explicit warning before any secret commits.
-3. **Proactive Context Compaction Triggers**: Automatically trigger compaction at task completion boundaries.
-4. **Strict Grounding & Anti-Hallucination Audit Protocol**: When auditing or exploring code, report ONLY what ACTUALLY exists on disk today. Never assume framework defaults. If an element cannot be found, explicitly state "NOT FOUND" instead of guessing. For every claim, cite the exact file path and function/route name (`path/to/file.ext#symbol`). Perform audits in read-only mode.
+3. **Local Sensitive Overrides Protocol (`local.<filename>.md` / `*.local.md`)**: Any machine-specific or sensitive notes (e.g. `local.agent.md`, `dev_md_guides/local.agent.md`) are strictly gitignored by default and must never be pushed to version control.
+4. **Proactive Context Compaction Triggers**: Automatically trigger compaction at task completion boundaries.
+5. **Strict Grounding & Anti-Hallucination Audit Protocol**: When auditing or exploring code, report ONLY what ACTUALLY exists on disk today. Never assume framework defaults. If an element cannot be found, explicitly state "NOT FOUND" instead of guessing. For every claim, cite the exact file path and function/route name (`path/to/file.ext#symbol`). Perform audits in read-only mode.
 

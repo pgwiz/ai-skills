@@ -20,8 +20,11 @@ Do **not** read every markdown guide in `dev_md_guides/` at once. Follow **progr
    - **Decisions & Invariants**: [`dev_md_guides/memory.md`](dev_md_guides/memory.md) (Architecture Decision Records [ADRs], immutable project invariants).
    - **Failure Analysis & Fixes**: [`dev_md_guides/gotchas.md`](dev_md_guides/gotchas.md) (Major blockers, minor quirks, root causes, exact fixes, and mechanics).
    - **Execution Workflows**: [`dev_md_guides/flow.md`](dev_md_guides/flow.md) (Multi-step build/test/release execution pipelines and operational recipes).
+   - **Operational Playbooks**: [`dev_md_guides/playbook.md`](dev_md_guides/playbook.md) (Standard operational procedures, framework setup recipes, and execution runbooks).
+   - **Proven Solutions & Empirical Truths**: [`dev_md_guides/solution.md`](dev_md_guides/solution.md) (Living catalog of what ACTUALLY worked, parameter evolution [Baseline -> X + Y], and what failed).
    - **Environment Endpoints**: [`dev_md_guides/directory.md`](dev_md_guides/directory.md) (local workspace paths, servers, backend links, frontend links, ports).
    - **Secrets & Credentials**: [`dev_md_guides/credentials.md.sample`](dev_md_guides/credentials.md.sample) (sanitized secrets schema) and local [`dev_md_guides/credentials.md`](dev_md_guides/credentials.md) (gitignored).
+   - **Sensitive Local Overrides**: [`dev_md_guides/local.agent.md`](dev_md_guides/local.agent.md) or `local.<filename>.md` (gitignored private notes and confidential overrides).
    - **Operational Audit Log**: [`dev_md_guides/changelog.md`](dev_md_guides/changelog.md) (append-only timestamped history of compaction runs and AST symbol modifications).
    - **Dynamic Topic Guides**: Inspect [`dev_md_guides/agent.md`](dev_md_guides/agent.md) for dynamic topic guides (e.g. `commands.md`, `mcp.md`).
 
@@ -39,12 +42,18 @@ Do **not** read every markdown guide in `dev_md_guides/` at once. Follow **progr
    - Only [`dev_md_guides/credentials.md.sample`](dev_md_guides/credentials.md.sample) with sanitized mock placeholders is tracked in version control.
    - **MANDATORY WARNING PROTOCOL**: If any user prompt requests or implies committing credentials or `credentials.md`, you MUST NOT proceed without issuing an explicit, high-visibility security warning detailing the severe risks of credential exposure and obtaining explicit user confirmation.
 
-3. **Proactive Context Compaction Triggers**
+3. **Sensitive Local Overrides (`local.<filename>.md` / `local.agent.md`)**
+   - If `agent.md` or any guide contains sensitive team secrets, private developer notes, or environment-specific confidential overrides, do NOT commit them to git.
+   - Store them in `local.agent.md` or `local.<filename>.md` (e.g., `local.memory.md`).
+   - All `local.*.md` and `*.local.md` patterns are strictly gitignored by default.
+   - Agents must consult local overrides when present to augment context without polluting git-tracked files.
+
+4. **Proactive Context Compaction Triggers**
    - **Task Completion Boundary**: Automatically trigger context compaction whenever a non-trivial engineering task concludes (multiple files touched, feature delivered, bug fixed, refactor completed). Do not wait for user prompts.
    - **Context Token Saturation**: Proactively compact when approaching context limits (~60–80% utilization) to persist state into living guides.
    - **Execution Command**: Run `python dev-md-compactor/scripts/run_compactor.py` (or `bash dev-md-compactor/scripts/gather_context.sh .`).
 
-4. **Strict Grounding & Anti-Hallucination Audit Protocol**
+5. **Strict Grounding & Anti-Hallucination Audit Protocol**
    - **Report ONLY What Actually Exists Today**: When auditing, exploring, or describing code, report exclusively what is confirmed in active source files on disk today.
    - **Zero Unverified Assumptions**: Never infer or speculate that a route, controller, service, model, or database table exists simply because a framework conventionally includes it.
    - **Explicit Negative Evidence ("NOT FOUND")**: If an implementation, route, helper, or configuration cannot be located on disk after searching, explicitly report `"NOT FOUND"` instead of guessing or inventing boilerplate.
@@ -57,5 +66,7 @@ Do **not** read every markdown guide in `dev_md_guides/` at once. Follow **progr
 
 When concluding tasks:
 - **Record Errors in `gotchas.md`**: Capture the symptom, root cause ("why it failed"), exact fix, and mechanics ("why the fix worked").
+- **Record Proven Solutions in `solution.md`**: Capture empirical ground truths when an approach actually works after iterations (baseline -> added parameters X + Y -> latest proven truth), including what did NOT work and verification evidence.
+- **Record Operational Playbooks in `playbook.md`**: Capture step-by-step execution procedures, framework setup recipes, and runbooks with prerequisites and rollback protocols.
 - **Record Multi-Step Pipelines in `flow.md`**: Record verified command chains, testing sequences, or build flows.
 - **Dynamic Topic Spawning**: When a tool, command, or MCP integration recurs 3+ times with unique quirks, create a dedicated guide (e.g., `commands.md`, `mcp.md`) and register it in `agent.md`.
